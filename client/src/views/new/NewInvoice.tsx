@@ -1,6 +1,5 @@
 // src/views/dashboard/NewInvoice.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useReactToPrint } from 'react-to-print';
 import './NewInvoice.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
@@ -88,12 +87,6 @@ function loadDraft(): InvoiceDraft | null {
 export default function NewInvoice() {
   const navigate = useNavigate();
   const mountedRef = useRef(false);
-  const printRef = useRef<HTMLDivElement>(null);
-  const doReactPrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: `Faktura_${draft.number || 'bez-nr'}`,
-    onBeforeGetContent: () => (document as any).fonts?.ready?.catch(()=>{})
-  });
 
   const initial: InvoiceDraft = useMemo(() => {
     const fromDraft = loadDraft();
@@ -222,10 +215,7 @@ export default function NewInvoice() {
     const errs = validate();
     setErrors(errs);
     if (errs.length > 0) return;
-    // react-to-print will clone and print only the referenced container
-    if (doReactPrint) {
-      doReactPrint();
-    }
+    setTimeout(() => window.print(), 100);
   }
 
   const errorBlock = errors.length > 0 ? (
@@ -393,8 +383,8 @@ export default function NewInvoice() {
           </div>
         </section>
 
-        {/* PRINT AREA (must be mounted and visible in DOM for react-to-print) */}
-        <div ref={printRef} className="invoice-print-root">
+        {/* PRINT AREA */}
+        <section className="print-only">
           <div className="print-a4">
             <header className="print-header">
               <h1>Faktura VAT {draft.number}</h1>
@@ -467,7 +457,7 @@ export default function NewInvoice() {
               {draft.notes ? <div>Uwagi: {draft.notes}</div> : null}
             </footer>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );

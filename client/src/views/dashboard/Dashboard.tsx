@@ -2,12 +2,11 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import './Dashboard.css';
 import { listReceived, type Invoice } from '../../services/ksefApi';
 
 export default function Dashboard() {
-    const navigate = useNavigate();
     const { data: invoices = [], isLoading, isFetching, error, refetch } = useQuery<Invoice[]>({
         queryKey: ['receivedInvoices'],
         queryFn: () => listReceived(),
@@ -42,7 +41,7 @@ export default function Dashboard() {
                     <div className="logo-dot" aria-hidden="true" />
                     <span className="brand-name">KSeF Master</span>
                 </div>
-                <a className="btn-accent new-invoice" href="#" onClick={(e)=>{e.preventDefault(); navigate('/invoices/new');}}>
+                <a className="btn-accent new-invoice" href="#" onClick={(e)=>e.preventDefault()}>
                     + Wystaw e-Fakturę
                 </a>
                 <nav className="nav-list">

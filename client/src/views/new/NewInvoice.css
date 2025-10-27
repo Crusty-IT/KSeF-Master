@@ -23,31 +23,17 @@ label.invalid input { border-color: #ff6b6b; }
 
 .print-only { display: none; }
 
-/* Print root for react-to-print: keep in DOM but offscreen */
-.invoice-print-root{position:fixed;top:-99999px;left:-99999px;width:210mm;background:#fff;color:#000;z-index:-1}
-
-/* Page setup */
-@page{size:A4;margin:12mm}
-
 /* Print styles */
 @media print {
-  html,body{margin:0!important;padding:0!important;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .sidebar,.app-header,.app-footer,.no-print,.toolbar{display:none!important}
-
-  .invoice-print-root{position:static!important;width:190mm;margin:0 auto;padding:10mm;box-sizing:border-box;box-shadow:none}
-
-  /* Content area and typography */
-  .print-a4 { width: 100%; font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 11pt; line-height: 1.35; }
-  .print-header { text-align: center; margin-bottom: 8mm; }
-  .print-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-bottom: 8mm; }
-
-  /* Tables */
-  table{width:100%;border-collapse:collapse}
-  th,td{border:1px solid #cfcfcf;padding:4px 6px;vertical-align:top}
-  thead { display: table-header-group; }
-  tfoot { display: table-footer-group; }
-  .avoid-break{break-inside:avoid;page-break-inside:avoid}
-
-  .print-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 8mm; }
-  .print-footer { margin-top: 8mm; font-size: 10.5pt; }
+  .print-only { display: block; }
+  .app-shell, .sidebar, .toolbar, .side-nav, .dash-header, .ops-section, .future-section { display: none !important; }
+  @page { size: A4; margin: 12mm; }
+  body { background: white !important; }
+  .print-a4 { width: 210mm; font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 12pt; }
+  .print-header { text-align: center; margin-bottom: 10mm; }
+  .print-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-bottom: 8mm; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: 4px 6px; }
+  .print-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; }
+  .print-footer { margin-top: 10mm; font-size: 11pt; }
 }

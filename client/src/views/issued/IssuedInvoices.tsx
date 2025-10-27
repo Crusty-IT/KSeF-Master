@@ -1,14 +1,13 @@
 // src/views/dashboard/IssuedInvoices.tsx
 import { useMemo, useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import '../received/ReceivedInvoices.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
 import { listIssued, type Invoice, type ListInvoicesParams, type UpoStatus } from '../../services/ksefApi';
 
 export default function IssuedInvoices() {
-  const navigate = useNavigate();
   // Filters state
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -58,7 +57,7 @@ export default function IssuedInvoices() {
           <div className="logo-dot" aria-hidden="true" />
           <span className="brand-name">KSeF Master</span>
         </div>
-        <a className="btn-accent new-invoice" href="#" onClick={(e)=>{e.preventDefault(); navigate('/invoices/new');}}>+ Wystaw e-Fakturę</a>
+        <a className="btn-accent new-invoice" href="#" onClick={(e)=>e.preventDefault()}>+ Wystaw e-Fakturę</a>
         <nav className="nav-list">
           <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
             <span className="icon" aria-hidden>🏠</span> Pulpit Główny
