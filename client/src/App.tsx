@@ -1,25 +1,32 @@
-// App.tsx
-import { useEffect, useState } from 'react';
+// App.tsx (router)
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import StartView from './views/start/StartView';
 import Dashboard from './views/dashboard/Dashboard';
+import ReceivedInvoices from './views/received/ReceivedInvoices';
+import IssuedInvoices from './views/issued/IssuedInvoices';
+import NewInvoice from './views/new/NewInvoice';
 
-function getRoute(): 'start' | 'dashboard' {
-  const hash = window.location.hash.replace(/^#/, '');
-  if (hash === '/dashboard' || hash === 'dashboard') return 'dashboard';
-  return 'start';
+function InvoiceDetailsPlaceholder() {
+  return (
+    <div style={{ padding: 24, color: 'white', background: '#0e1116', minHeight: '100vh' }}>
+      <h2>Podgląd faktury</h2>
+      <p>Widok szczegółów faktury będzie dostępny wkrótce.</p>
+    </div>
+  );
 }
 
 export default function App() {
-  const [route, setRoute] = useState<'start' | 'dashboard'>(getRoute());
-
-  useEffect(() => {
-    const onHashChange = () => setRoute(getRoute());
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
-
-  if (route === 'dashboard') {
-    return <Dashboard />;
-  }
-  return <StartView />;
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<StartView />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/invoices/received" element={<ReceivedInvoices />} />
+        <Route path="/invoices/issued" element={<IssuedInvoices />} />
+        <Route path="/invoices/new" element={<NewInvoice />} />
+        <Route path="/invoices/:ksefId" element={<InvoiceDetailsPlaceholder />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </HashRouter>
+  );
 }
