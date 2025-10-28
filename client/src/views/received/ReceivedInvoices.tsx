@@ -1,7 +1,7 @@
 // src/views/dashboard/ReceivedInvoices.tsx
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import './ReceivedInvoices.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
@@ -24,15 +24,17 @@ export default function ReceivedInvoices() {
     pageSize,
   }), [nip, status, from, to, page, pageSize]);
 
-  const { data = [], isLoading, isFetching, error, refetch } = useQuery<Invoice[]>({
+  const query = useQuery<Invoice[], Error>({
     queryKey: ['receivedInvoices', params],
     queryFn: () => listReceived(params),
-    keepPreviousData: true,
+    staleTime: 60_000,
   });
+  const data: Invoice[] = query.data ?? [];
+  const { isLoading, isFetching, error, refetch } = query;
 
   // FE filtering as a fallback (in case server ignores params)
-  const filtered = useMemo(() => {
-    return data.filter((row) => {
+  const filtered = useMemo<Invoice[]>(() => {
+    return data.filter((row: Invoice) => {
       if (nip && !row.nipKontrahenta.includes(nip)) return false;
       if (status && row.status !== status) return false;
       if (from && row.dataWystawienia < from) return false;
@@ -57,7 +59,7 @@ export default function ReceivedInvoices() {
           <div className="logo-dot" aria-hidden="true" />
           <span className="brand-name">KSeF Master</span>
         </div>
-        <a className="btn-accent new-invoice" href="#" onClick={(e)=>e.preventDefault()}>+ Wystaw e-Fakturę</a>
+        <NavLink className="btn-accent new-invoice" to="/invoices/new">+ Wystaw e-Fakturę</NavLink>
         <nav className="nav-list">
           <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
             <span className="icon" aria-hidden>🏠</span> Pulpit Główny

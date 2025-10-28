@@ -41,9 +41,9 @@ export default function Dashboard() {
                     <div className="logo-dot" aria-hidden="true" />
                     <span className="brand-name">KSeF Master</span>
                 </div>
-                <a className="btn-accent new-invoice" href="#" onClick={(e)=>e.preventDefault()}>
+                <NavLink className="btn-accent new-invoice" to="/invoices/new">
                     + Wystaw e-Fakturę
-                </a>
+                </NavLink>
                 <nav className="nav-list">
                     <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
                         <span className="icon" aria-hidden>🏠</span> Pulpit Główny

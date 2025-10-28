@@ -21,7 +21,7 @@ label.invalid input { border-color: #ff6b6b; }
 .summary-bar { margin-top: 8px; padding: 8px 10px; background: #0c1015; border: 1px solid #1e2530; border-radius: 6px; color: #e8eef8; }
 .info-banner { background: #0e3a1e; color: #c4ffd7; padding: 8px 10px; border: 1px solid #1b5b2c; border-radius: 6px; margin-bottom: 8px; }
 
-.print-only { display: none; }
+.print-only { display: none; pointer-events: none; }
 
 /* Print styles */
 @media print {
