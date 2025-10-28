@@ -263,7 +263,7 @@ export default function NewInvoice() {
     const { perRate } = totals;
 
     return (
-        <div className="dash-root">
+        <div className="dash-root print-only-container">
             <aside className="side-nav" aria-label="Nawigacja boczna">
                 <div className="brand">
                     <div className="logo-dot" aria-hidden="true" />

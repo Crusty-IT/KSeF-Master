@@ -24,16 +24,24 @@ label.invalid input { border-color: #ff6b6b; }
 .print-only { display: none; pointer-events: none; }
 
 /* Print styles */
+/* Style dla drukowania */
 @media print {
-  .print-only { display: block; }
-  .app-shell, .sidebar, .toolbar, .side-nav, .dash-header, .ops-section, .future-section { display: none !important; }
-  @page { size: A4; margin: 12mm; }
-  body { background: white !important; }
-  .print-a4 { width: 210mm; font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 12pt; }
-  .print-header { text-align: center; margin-bottom: 10mm; }
-  .print-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-bottom: 8mm; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 4px 6px; }
-  .print-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; }
-  .print-footer { margin-top: 10mm; font-size: 11pt; }
+    /* Ukryj wszystko, co nie jest przeznaczone do druku */
+    body > #root > *:not(.print-only-container) {
+        display: none;
+    }
+
+    /* Twoja sekcja 'print-only' ma być widoczna i zajmować całą przestrzeń */
+    .print-only {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+
+    /* Upewnij się, że elementy interfejsu są ukryte */
+    .side-nav, .ops-section, .dash-header {
+        display: none;
+    }
 }
