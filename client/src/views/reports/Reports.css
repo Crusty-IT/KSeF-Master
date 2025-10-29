@@ -1,0 +1,43 @@
+/* Pasek filtrów */
+.reports-filters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+.reports-filters label { display: flex; flex-direction: column; gap: 6px; }
+
+/* KPI */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+.kpi-card { display: flex; flex-direction: column; gap: 6px; }
+.kpi-title { opacity: .8; font-size: .95rem; }
+.kpi-value { font-size: 1.4rem; font-weight: 700; }
+
+/* Sekcje tabelek */
+.reports-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Responsywność */
+@media (max-width: 1100px) {
+    .reports-filters { grid-template-columns: 1fr 1fr; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .reports-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .reports-filters { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* Druk – proste layouty jeden pod drugim */
+@media print {
+    .reports-filters { display: none; }
+    .kpi-grid, .reports-grid { grid-template-columns: 1fr; gap: 8px; }
+}

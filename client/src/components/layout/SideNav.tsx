@@ -28,15 +28,14 @@ export default function SideNav() {
                     <span className="icon" aria-hidden>👥</span>
                     <span className="nav-label">Klienci</span>
                 </NavLink>
-
-                <a className="nav-item disabled" href="#" onClick={(e) => e.preventDefault()}>
+                <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/reports">
                     <span className="icon" aria-hidden>📊</span>
                     <span className="nav-label">Raporty</span>
-                </a>
-                <a className="nav-item disabled" href="#" onClick={(e) => e.preventDefault()}>
+                </NavLink>
+                <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/settings">
                     <span className="icon" aria-hidden>⚙️</span>
                     <span className="nav-label">Ustawienia</span>
-                </a>
+                </NavLink>
 
                 <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/">
                     <span className="icon" aria-hidden>↩️</span>

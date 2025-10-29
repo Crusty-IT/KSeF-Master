@@ -11,7 +11,7 @@ app.use(express.json());
 
 // --- Dane demonstracyjne (mock) ---
 const demoInvoices = [
-    { numerKsef: 'ABC-2025-000123', numerFaktury: 'FV/01/2025', nipKontrahenta: '1234567890', kwotaBrutto: 12345.67, dataWystawienia: '2025-10-10', status: 'accepted' },
+    { numerKsef: 'ABC-2025-000123', numerFaktury: 'FV/01/2025', nipKontrahenta: '1234567830', kwotaBrutto: 12345.67, dataWystawienia: '2025-10-10', status: 'accepted' },
     { numerKsef: 'ABC-2025-000124', numerFaktury: 'FV/02/2025', nipKontrahenta: '9876543210', kwotaBrutto: 2345.00, dataWystawienia: '2025-10-11', status: 'pending' },
     { numerKsef: 'ABC-2025-000125', numerFaktury: 'FV/03/2025', nipKontrahenta: '5250012312', kwotaBrutto: 999.99, dataWystawienia: '2025-10-12', status: 'rejected' },
     { numerKsef: 'ABC-2025-000126', numerFaktury: 'FV/04/2025', nipKontrahenta: '1112223344', kwotaBrutto: 5120.00, dataWystawienia: '2025-10-13', status: 'accepted' },

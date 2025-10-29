@@ -6,6 +6,8 @@ import ReceivedInvoices from './views/received/ReceivedInvoices';
 import IssuedInvoices from './views/issued/IssuedInvoices';
 import NewInvoice from './views/new/NewInvoice';
 import ClientsView from './views/clients/ClientsView';
+import Reports from './views/reports/Reports';
+import Settings from './views/settings/Settings';
 
 function InvoiceDetailsPlaceholder() {
     return (
@@ -27,6 +29,8 @@ export default function App() {
                 <Route path="/invoices/new" element={<NewInvoice />} />
                 <Route path="/invoices/:ksefId" element={<InvoiceDetailsPlaceholder />} />
                 <Route path="/clients" element={<ClientsView />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </HashRouter>

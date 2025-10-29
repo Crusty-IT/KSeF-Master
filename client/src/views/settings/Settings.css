@@ -1,0 +1,21 @@
+.file-btn { position: relative; overflow: hidden; cursor: pointer; }
+.file-btn input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+.hint { opacity: .75; font-size: .9rem; }
+.checkbox { display: inline-flex; align-items: center; gap: 8px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.danger-zone { border: 1px solid rgba(255,0,0,.15); }
+.danger-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-danger {
+    background: #8b1e1e; color: #fff; border: 1px solid #a52a2a;
+    padding: 10px 12px; border-radius: 6px;
+}
+.btn-danger:hover { background: #9e2222; }
+
+@media (max-width: 860px) {
+    .two-col { grid-template-columns: 1fr; }
+}
+@media print {
+    .ops-actions, .file-btn, .btn-danger { display: none !important; }
+}
