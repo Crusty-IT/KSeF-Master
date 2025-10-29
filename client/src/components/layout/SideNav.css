@@ -1,0 +1,103 @@
+/* ---- Plik: src/components/layout/SideNav.css ---- */
+
+/* Podstawy paska nawigacji */
+.side-nav {
+    background-color: #171721;
+    width: var(--sidenav-w);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #2d2d3d;
+    height: 100dvh;
+    position: sticky;
+    top: 0;
+    transition: width 0.3s ease;
+}
+
+/* Branding (logo i nazwa) */
+.side-nav .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    min-height: 24px;
+}
+.side-nav .logo-dot {
+    width: 12px;
+    height: 12px;
+    background-color: #00e096;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.side-nav .brand-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #fff;
+    white-space: nowrap;
+}
+
+/* Główny przycisk CTA */
+.side-nav .new-invoice {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 24px;
+    padding: 12px;
+    text-decoration: none;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Lista linków nawigacyjnych */
+.side-nav .nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Pojedynczy link w nawigacji */
+.side-nav .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    color: #a0a0b0;
+    text-decoration: none;
+    transition: background-color 0.2s, color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Ukryj wszystko, co wystaje poza link */
+}
+
+/* NOWA, KLUCZOWA REGUŁA dla etykiety tekstowej */
+.side-nav .nav-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.side-nav .nav-item:hover {
+    background-color: #252535;
+    color: #fff;
+}
+.side-nav .nav-item.active {
+    background-color: #2a2a3c;
+    color: #fff;
+    font-weight: 500;
+}
+.side-nav .nav-item .icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+/* Stan 'disabled' */
+.side-nav .nav-item.disabled {
+    color: #555;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+.side-nav .nav-item.disabled:hover {
+    background-color: transparent;
+    color: #555;
+}

@@ -6,9 +6,10 @@ import './ReceivedInvoices.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
 import { listReceived, type Invoice, type ListInvoicesParams, type UpoStatus } from '../../services/ksefApi';
+import SideNav from '../../components/layout/SideNav';
 
 export default function ReceivedInvoices() {
-  // Filters state
+
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [nip, setNip] = useState('');
@@ -54,36 +55,7 @@ export default function ReceivedInvoices() {
 
   return (
     <div className="dash-root">
-      <aside className="side-nav" aria-label="Nawigacja boczna">
-        <div className="brand">
-          <div className="logo-dot" aria-hidden="true" />
-          <span className="brand-name">KSeF Master</span>
-        </div>
-        <NavLink className="btn-accent new-invoice" to="/invoices/new">+ Wystaw e-Fakturę</NavLink>
-        <nav className="nav-list">
-          <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
-            <span className="icon" aria-hidden>🏠</span> Pulpit Główny
-          </NavLink>
-          <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/invoices/received">
-            <span className="icon" aria-hidden>📥</span> Faktury KSeF (Odebrane)
-          </NavLink>
-          <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/invoices/issued">
-            <span className="icon" aria-hidden>📤</span> Faktury KSeF (Wystawione)
-          </NavLink>
-          <a className="nav-item" href="#" onClick={(e)=>e.preventDefault()}>
-            <span className="icon" aria-hidden>👥</span> Klienci
-          </a>
-          <a className="nav-item" href="#" onClick={(e)=>e.preventDefault()}>
-            <span className="icon" aria-hidden>📊</span> Raporty
-          </a>
-          <a className="nav-item" href="#" onClick={(e)=>e.preventDefault()}>
-            <span className="icon" aria-hidden>⚙️</span> Ustawienia
-          </a>
-          <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/">
-            <span className="icon" aria-hidden>↩️</span> Start
-          </NavLink>
-        </nav>
-      </aside>
+        <SideNav />
 
       <main className="dash-main">
         <header className="dash-header">

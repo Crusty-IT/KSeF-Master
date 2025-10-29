@@ -10,7 +10,7 @@ import VatSelect from '../../components/form/VatSelect';
 import { formatPLN, round2 } from '../../helpers/money';
 import { isValidNip, sanitizeNip } from '../../helpers/nip';
 import { calcLine, type VatRate } from '../../helpers/vat';
-import { NavLink } from 'react-router-dom';
+import SideNav from '../../components/layout/SideNav';
 
 // ===== Types =====
 export type { VatRate } from '../../helpers/vat';
@@ -264,22 +264,7 @@ export default function NewInvoice() {
 
     return (
         <div className="dash-root print-only-container">
-            <aside className="side-nav" aria-label="Nawigacja boczna">
-                <div className="brand">
-                    <div className="logo-dot" aria-hidden="true" />
-                    <span className="brand-name">KSeF Master</span>
-                </div>
-                <NavLink className="btn-accent new-invoice" to="/invoices/new">+ Wystaw e-Fakturę</NavLink>
-                <nav className="nav-list">
-                    <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard"><span className="icon" aria-hidden>🏠</span> Pulpit Główny</NavLink>
-                    <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/invoices/received"><span className="icon" aria-hidden>📥</span> Faktury KSeF (Odebrane)</NavLink>
-                    <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/invoices/issued"><span className="icon" aria-hidden>📤</span> Faktury KSeF (Wystawione)</NavLink>
-                    <a className="nav-item" href="#" onClick={(e) => e.preventDefault()}><span className="icon" aria-hidden>👥</span> Klienci</a>
-                    <a className="nav-item" href="#" onClick={(e) => e.preventDefault()}><span className="icon" aria-hidden>📊</span> Raporty</a>
-                    <a className="nav-item" href="#" onClick={(e) => e.preventDefault()}><span className="icon" aria-hidden>⚙️</span> Ustawienia</a>
-                    <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/"><span className="icon" aria-hidden>↩️</span> Start</NavLink>
-                </nav>
-            </aside>
+            <SideNav />
 
             <main className="dash-main">
                 <header className="dash-header">

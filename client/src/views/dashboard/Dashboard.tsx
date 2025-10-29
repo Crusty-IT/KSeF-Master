@@ -2,9 +2,9 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { NavLink } from 'react-router-dom';
 import './Dashboard.css';
 import { listReceived, type Invoice } from '../../services/ksefApi';
+import SideNav from '../../components/layout/SideNav';
 
 export default function Dashboard() {
     const { data: invoices = [], isLoading, isFetching, error, refetch } = useQuery<Invoice[]>({
@@ -36,38 +36,7 @@ export default function Dashboard() {
     return (
         <div className="dash-root">
             {/* === PEŁNE MENU NAWIGACYJNE === */}
-            <aside className="side-nav" aria-label="Nawigacja boczna">
-                <div className="brand">
-                    <div className="logo-dot" aria-hidden="true" />
-                    <span className="brand-name">KSeF Master</span>
-                </div>
-                <NavLink className="btn-accent new-invoice" to="/invoices/new">
-                    + Wystaw e-Fakturę
-                </NavLink>
-                <nav className="nav-list">
-                    <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
-                        <span className="icon" aria-hidden>🏠</span> Pulpit Główny
-                    </NavLink>
-                    <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/invoices/received">
-                        <span className="icon" aria-hidden>📥</span> Faktury KSeF (Odebrane)
-                    </NavLink>
-                    <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/invoices/issued">
-                        <span className="icon" aria-hidden>📤</span> Faktury KSeF (Wystawione)
-                    </NavLink>
-                    <a className="nav-item" href="#" onClick={(e)=>e.preventDefault()}>
-                        <span className="icon" aria-hidden>👥</span> Klienci
-                    </a>
-                    <a className="nav-item" href="#" onClick={(e)=>e.preventDefault()}>
-                        <span className="icon" aria-hidden>📊</span> Raporty
-                    </a>
-                    <a className="nav-item" href="#" onClick={(e)=>e.preventDefault()}>
-                        <span className="icon" aria-hidden>⚙️</span> Ustawienia
-                    </a>
-                    <NavLink className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`} to="/">
-                        <span className="icon" aria-hidden>↩️</span> Start
-                    </NavLink>
-                </nav>
-            </aside>
+            <SideNav /> {/* <-- ZASTĄPIONE */}
 
             {/* Główna treść */}
             <main className="dash-main">
