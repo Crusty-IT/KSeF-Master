@@ -1,0 +1,30 @@
+/* src/views/clients/ClientsView.css */
+
+.clients-table {
+    width: 100%;
+}
+
+.clients-table .actions-cell {
+    text-align: right;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* Dodatkowy styl dla przycisku "Usuń", aby był bardziej widoczny */
+.btn-light.danger {
+    color: #ff5c5c;
+    border-color: #ff5c5c;
+}
+
+.btn-light.danger:hover {
+    background-color: #ff5c5c;
+    color: white;
+}
+
+/* Styl dla nieaktywnych linków w nawigacji */
+.nav-item.disabled {
+    color: #555;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
