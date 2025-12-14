@@ -1,111 +1,183 @@
+// src/views/start/StartView.tsx
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './StartView.css';
 
 export default function StartView() {
+  const navigate = useNavigate();
+  const { login, isLoading, error: authError, isAuthenticated } = useAuth();
+
   const [nip, setNip] = useState('');
+  const [ksefToken, setKsefToken] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const nipDigits = nip.replace(/\D/g, '').slice(0, 10);
   const nipValid = /^\d{10}$/.test(nipDigits);
-  const disableReason = 'Wprowadź poprawny 10-cyfrowy NIP, aby kontynuować.';
+  const tokenValid = ksefToken.includes('|') && ksefToken.length > 20;
+
+  // Jeśli już zalogowany, przekieruj
+  if (isAuthenticated) {
+    navigate('/dashboard', { replace: true });
+    return null;
+  }
+
+  const handleLogin = async () => {
+    if (!nipValid) {
+      setLocalError('Wprowadź poprawny 10-cyfrowy NIP');
+      return;
+    }
+    if (!tokenValid) {
+      setLocalError('Wprowadź poprawny token KSeF');
+      return;
+    }
+
+    setLocalError(null);
+    setIsSubmitting(true);
+
+    try {
+      const success = await login(nipDigits, ksefToken.trim());
+      if (success) {
+        navigate('/dashboard');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const displayError = localError || authError;
 
   return (
-    <div className="start-root">
-      <main className="login-wrap" role="main">
-        <header className="login-header">
-          <h1 className="app-title">Zaloguj się do KSeF Master</h1>
-        </header>
+      <div className="start-root">
+        <main className="login-wrap" role="main">
+          <header className="login-header">
+            <h1 className="app-title">Zaloguj się do KSeF Master</h1>
+            <p className="app-subtitle">Środowisko testowe KSeF</p>
+          </header>
 
-        <section className="login-module" aria-labelledby="login-options">
-          <h2 id="login-options" className="sr-only">Opcje logowania</h2>
+          <section className="login-module" aria-labelledby="login-options">
+            <h2 id="login-options" className="sr-only">Logowanie tokenem KSeF</h2>
 
-          {/* Krok 1: NIP */}
-          <form className="nip-form" aria-label="Identyfikacja podmiotu">
-            <label htmlFor="nip" className="nip-label">
-              Wprowadź NIP Podatnika
-              <span className="hint" title="NIP jest wymagany do określenia kontekstu uwierzytelniania w KSeF.">ⓘ</span>
-            </label>
-            <input
-              id="nip"
-              name="nip"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="10 cyfr NIP"
-              className="nip-input"
-              value={nip}
-              onChange={(e) => setNip(e.target.value.replace(/\D/g, ''))}
-              aria-describedby="nip-help"
-              aria-invalid={!nipValid && nip.length > 0}
-            />
-            <p id="nip-help" className="nip-help">NIP jest wymagany do określenia kontekstu uwierzytelniania w KSeF.</p>
-          </form>
+            {/* Komunikat o błędzie */}
+            {displayError && (
+                <div className="error-banner" style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '16px',
+                  color: '#fca5a5',
+                  fontSize: '14px'
+                }}>
+                  ⚠️ {displayError}
+                </div>
+            )}
 
-          {/* Krok 2: Metoda uwierzytelnienia */}
-          <div className="primary-actions">
-            <button
-              className="btn btn-primary"
-              type="button"
-              aria-label="Zaloguj się przez Profil Zaufany"
-              disabled={!nipValid}
-              title={!nipValid ? disableReason : undefined}
-            >
-              <span className="btn-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17 11H7a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2z" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M8 11V8a4 4 0 118 0v3" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-              </span>
-              <span>Profil Zaufany</span>
-            </button>
-            <button
-              className="btn btn-secondary"
-              type="button"
-              aria-label="Zaloguj się przy użyciu Certyfikatu Kwalifikowanego lub Pieczęci"
-              disabled={!nipValid}
-              title={!nipValid ? disableReason : undefined}
-            >
-              <span className="btn-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="6" y="3" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-              </span>
-              <span>Certyfikat Kwalifikowany / Pieczęć</span>
-            </button>
-          </div>
-
-          <form className="token-form" aria-label="Logowanie tokenem">
-            <label htmlFor="ksef-token" className="token-label">Wprowadź Token KSeF</label>
-            <div className="token-input-row">
+            {/* Krok 1: NIP */}
+            <form className="nip-form" aria-label="Identyfikacja podmiotu" onSubmit={(e) => e.preventDefault()}>
+              <label htmlFor="nip" className="nip-label">
+                NIP Podatnika
+                <span className="hint" title="NIP jest wymagany do uwierzytelnienia w KSeF">ⓘ</span>
+              </label>
               <input
-                id="ksef-token"
-                name="ksef-token"
-                type="text"
-                inputMode="text"
-                placeholder="Wklej token dostępu"
-                className="token-input"
-                aria-describedby="token-help"
+                  id="nip"
+                  name="nip"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="np. 5252161248"
+                  className="nip-input"
+                  value={nip}
+                  onChange={(e) => setNip(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  aria-describedby="nip-help"
+                  aria-invalid={!nipValid && nip.length > 0}
+                  disabled={isSubmitting || isLoading}
               />
-              <button className="btn btn-outline" type="button">Zaloguj Tokenem</button>
+              <p id="nip-help" className="nip-help">
+                {nipValid ? '✓ NIP poprawny' : 'Wprowadź 10-cyfrowy NIP'}
+              </p>
+            </form>
+
+            {/* Krok 2: Token KSeF */}
+            <form className="token-form" aria-label="Logowanie tokenem" onSubmit={(e) => {
+              e.preventDefault();
+              handleLogin();
+            }}>
+              <label htmlFor="ksef-token" className="token-label">
+                Token KSeF
+              </label>
+              <div className="token-input-row">
+                <input
+                    id="ksef-token"
+                    name="ksef-token"
+                    type="text"
+                    placeholder="Wklej token z aplikacji KSeF MF"
+                    className="token-input"
+                    value={ksefToken}
+                    onChange={(e) => setKsefToken(e.target.value)}
+                    aria-describedby="token-help"
+                    disabled={isSubmitting || isLoading}
+                    style={{ flex: 1 }}
+                />
+              </div>
+              <p id="token-help" className="token-help">
+                Token wygenerowany w oficjalnej aplikacji KSeF Ministerstwa Finansów.
+                <br />
+                Format: XXXXXXXX-XX-XXXXXXXXXX-XXXXXXXXXX-XX|nip-XXXXXXXXXX|hash
+              </p>
+
+              <button
+                  className="btn btn-primary"
+                  type="submit"
+                  disabled={!nipValid || !tokenValid || isSubmitting || isLoading}
+                  style={{ width: '100%', marginTop: '16px' }}
+              >
+                {isSubmitting || isLoading ? (
+                    <>
+                      <span className="btn-icon" aria-hidden="true">⏳</span>
+                      <span>Logowanie...</span>
+                    </>
+                ) : (
+                    <>
+                      <span className="btn-icon" aria-hidden="true">🔐</span>
+                      <span>Zaloguj się do KSeF</span>
+                    </>
+                )}
+              </button>
+            </form>
+
+            {/* Instrukcja */}
+            <div style={{
+              marginTop: '24px',
+              padding: '16px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#93c5fd'
+            }}>
+              <strong>Jak uzyskać token?</strong>
+              <ol style={{ margin: '8px 0 0 16px', padding: 0 }}>
+                <li>Wejdź na <a href="https://ksef-test.mf.gov.pl/" target="_blank" rel="noopener" style={{ color: '#60a5fa' }}>ksef-test.mf.gov.pl</a></li>
+                <li>Zaloguj się przez Profil Zaufany</li>
+                <li>Przejdź do ustawień → Tokeny</li>
+                <li>Wygeneruj nowy token i skopiuj go tutaj</li>
+              </ol>
             </div>
-            <p id="token-help" className="token-help">Użyj tokena tylko do integracji systemowych (API).</p>
-          </form>
-        </section>
+          </section>
 
-        <div className="demo-link-wrap">
-          <a className="demo-link" href="#/dashboard" role="link">Przejdź do trybu demonstracyjnego (Bez Logowania / Test)</a>
-        </div>
-      </main>
+          <div className="demo-link-wrap">
+            <a className="demo-link" href="#/dashboard">
+              Przejdź do trybu demonstracyjnego (bez logowania)
+            </a>
+          </div>
+        </main>
 
-      <footer className="site-footer">
-        <div className="footer-inner">
-          <span>© 2025 KSeF Master — Wszelkie prawa zastrzeżone.</span>
-          <nav aria-label="Linki prawne">
-            <a href="#" className="footer-link">Polityka prywatności</a>
-            <span className="dot" aria-hidden="true">|</span>
-            <a href="#" className="footer-link">Regulamin</a>
-          </nav>
-        </div>
-      </footer>
-    </div>
+        <footer className="site-footer">
+          <div className="footer-inner">
+            <span>© 2025 KSeF Master — Środowisko testowe</span>
+          </div>
+        </footer>
+      </div>
   );
 }
