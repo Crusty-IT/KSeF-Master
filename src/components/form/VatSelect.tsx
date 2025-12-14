@@ -1,5 +1,4 @@
-// client/src/components/form/VatSelect.tsx
-import { VatRate } from '../../helpers/vat';
+import type { VatRate } from '../../helpers/vat';
 
 interface Props {
     label?: string;

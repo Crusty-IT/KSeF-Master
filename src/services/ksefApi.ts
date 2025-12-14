@@ -2,7 +2,6 @@
 import axios, { AxiosError } from 'axios';
 
 // ===== Konfiguracja =====
-// URL backendu - ustaw w zmiennej środowiskowej VITE_API_URL na Netlify
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const apiClient = axios.create({
@@ -10,7 +9,7 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 60000, // 60 sekund (KSeF może być wolny)
+    timeout: 60000,
 });
 
 // ===== Typy =====
@@ -49,10 +48,10 @@ export interface SessionStatus {
 }
 
 export interface InvoiceQueryRequest {
-    subjectType: 'Subject1' | 'Subject2'; // Subject1 = wystawione, Subject2 = odebrane
+    subjectType: 'Subject1' | 'Subject2';
     dateRange: {
         dateType: 'PermanentStorage' | 'InvoicingDate' | 'AcquisitionDate';
-        from: string; // ISO date
+        from: string;
         to: string;
     };
 }
@@ -114,8 +113,8 @@ export interface OpenSessionResponse {
 
 export interface CreateInvoiceRequest {
     invoiceNumber: string;
-    issueDate: string; // YYYY-MM-DD
-    saleDate: string;  // YYYY-MM-DD
+    issueDate: string;
+    saleDate: string;
     seller: {
         nip: string;
         name: string;
@@ -135,7 +134,7 @@ export interface CreateInvoiceRequest {
         unit: string;
         quantity: number;
         unitPriceNet: number;
-        vatRate: string; // "23", "8", "5", "0", "zw", "np"
+        vatRate: string;
     }[];
     currency?: string;
     issuePlace?: string;
@@ -154,17 +153,11 @@ export interface SendInvoiceResponse {
 
 // ===== API Functions =====
 
-/**
- * Sprawdza status serwera i sesji
- */
 export async function getStatus(): Promise<SessionStatus> {
     const response = await apiClient.get<SessionStatus>('/status');
     return response.data;
 }
 
-/**
- * Logowanie do KSeF
- */
 export async function login(request: LoginRequest): Promise<LoginResponse> {
     try {
         const response = await apiClient.post<LoginResponse>('/login', request);
@@ -177,17 +170,11 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
     }
 }
 
-/**
- * Wylogowanie z KSeF
- */
 export async function logout(): Promise<{ success: boolean; message?: string }> {
     const response = await apiClient.post('/logout');
     return response.data;
 }
 
-/**
- * Pobiera faktury z KSeF
- */
 export async function getInvoices(request: InvoiceQueryRequest): Promise<InvoiceQueryResponse> {
     try {
         const response = await apiClient.post<InvoiceQueryResponse>('/invoices', request);
@@ -200,9 +187,6 @@ export async function getInvoices(request: InvoiceQueryRequest): Promise<Invoice
     }
 }
 
-/**
- * Otwiera sesję do wysyłki faktur
- */
 export async function openSession(): Promise<OpenSessionResponse> {
     try {
         const response = await apiClient.post<OpenSessionResponse>('/session/open');
@@ -215,17 +199,11 @@ export async function openSession(): Promise<OpenSessionResponse> {
     }
 }
 
-/**
- * Zamyka sesję wysyłkową
- */
 export async function closeSession(): Promise<{ success: boolean; message?: string }> {
     const response = await apiClient.post('/session/close');
     return response.data;
 }
 
-/**
- * Wysyła fakturę do KSeF
- */
 export async function sendInvoice(invoice: CreateInvoiceRequest): Promise<SendInvoiceResponse> {
     try {
         const response = await apiClient.post<SendInvoiceResponse>('/invoice/send', invoice);
@@ -238,7 +216,7 @@ export async function sendInvoice(invoice: CreateInvoiceRequest): Promise<SendIn
     }
 }
 
-// ===== Legacy compatibility (dla istniejących komponentów) =====
+// ===== Legacy compatibility =====
 
 export type UpoStatus = 'accepted' | 'pending' | 'rejected';
 
@@ -252,9 +230,14 @@ export interface Invoice {
     status: UpoStatus;
 }
 
-/**
- * Mapuje nowy format na stary (dla kompatybilności)
- */
+export interface ListInvoicesParams {
+    page?: number;
+    pageSize?: number;
+    nip?: string;
+    status?: UpoStatus | '';
+    date?: { from?: string; to?: string };
+}
+
 function mapToLegacyInvoice(invoice: InvoiceMetadata, type: 'issued' | 'received'): Invoice {
     return {
         numerKsef: invoice.ksefNumber,
@@ -267,14 +250,12 @@ function mapToLegacyInvoice(invoice: InvoiceMetadata, type: 'issued' | 'received
             : invoice.seller?.nip || '',
         kwotaBrutto: invoice.grossAmount || 0,
         dataWystawienia: invoice.issueDate || invoice.invoicingDate?.split('T')[0] || '',
-        status: 'accepted' as UpoStatus, // KSeF nie zwraca statusu w query
+        status: 'accepted' as UpoStatus,
     };
 }
 
-/**
- * Pobiera faktury wystawione (Subject1) - legacy API
- */
-export async function listIssued(): Promise<Invoice[]> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function listIssued(_params?: ListInvoicesParams): Promise<Invoice[]> {
     const now = new Date();
     const from = new Date(now);
     from.setMonth(from.getMonth() - 3);
@@ -293,13 +274,11 @@ export async function listIssued(): Promise<Invoice[]> {
         return [];
     }
 
-    return response.data.invoices.map(inv => mapToLegacyInvoice(inv, 'issued'));
+    return response.data.invoices.map((inv: InvoiceMetadata) => mapToLegacyInvoice(inv, 'issued'));
 }
 
-/**
- * Pobiera faktury odebrane (Subject2) - legacy API
- */
-export async function listReceived(): Promise<Invoice[]> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function listReceived(_params?: ListInvoicesParams): Promise<Invoice[]> {
     const now = new Date();
     const from = new Date(now);
     from.setMonth(from.getMonth() - 3);
@@ -318,22 +297,27 @@ export async function listReceived(): Promise<Invoice[]> {
         return [];
     }
 
-    return response.data.invoices.map(inv => mapToLegacyInvoice(inv, 'received'));
+    return response.data.invoices.map((inv: InvoiceMetadata) => mapToLegacyInvoice(inv, 'received'));
 }
 
-// Legacy exports for compatibility
 export const getReceivedInvoices = listReceived;
 
-export interface ListInvoicesParams {
-    page?: number;
-    pageSize?: number;
-    nip?: string;
-    status?: UpoStatus | '';
-    date?: { from?: string; to?: string };
+export interface Contractor {
+    nip: string;
+    nazwa?: string;
+    name?: string;
+    adres?: string;
+    address?: string;
+    bankAccount?: string;
 }
 
-// Placeholder functions (nie używane z prawdziwym KSeF)
-export async function listContractors(): Promise<never[]> {
+export interface ContractorQueryParams {
+    q?: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function listContractors(_params?: ContractorQueryParams): Promise<Contractor[]> {
+    // Placeholder - w przyszłości można zintegrować z API GUS lub własną bazą
     return [];
 }
 

@@ -1,14 +1,19 @@
-import { ButtonHTMLAttributes, PropsWithChildren } from 'react';
+import type { ButtonHTMLAttributes, PropsWithChildren } from 'react';
 
-interface PrimaryButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  icon?: string | React.ReactNode;
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+    icon?: string;
 }
 
-export default function PrimaryButton({ icon, children, className = '', ...rest }: PropsWithChildren<PrimaryButtonProps>) {
-  return (
-    <button className={`btn-accent ${className}`.trim()} {...rest}>
-      {icon ? <span className="btn-icon" aria-hidden>{icon}</span> : null}
-      {children}
-    </button>
-  );
+export default function PrimaryButton({
+                                          children,
+                                          icon,
+                                          className = '',
+                                          ...rest
+                                      }: PropsWithChildren<Props>) {
+    return (
+        <button className={`btn-primary ${className}`} {...rest}>
+            {icon && <span className="btn-icon">{icon}</span>}
+            {children}
+        </button>
+    );
 }

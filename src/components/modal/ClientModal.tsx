@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import PrimaryButton from '../buttons/PrimaryButton';
 import './ClientModal.css';
-import { Client } from '../../services/clientService';
-import { sanitizeNip } from '../../helpers/nip'; // Używamy istniejącego helpera
+import type { Client } from '../../services/clientService';
+import { sanitizeNip } from '../../helpers/nip';
 
 interface Props {
     isOpen: boolean;
@@ -28,16 +29,16 @@ export default function ClientModal({ isOpen, onClose, onSave, clientToEdit }: P
         return null;
     }
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = (e: FormEvent) => {
         e.preventDefault();
         onSave({
             ...formState,
             id: clientToEdit?.id,
-            nip: sanitizeNip(formState.nip), // Sanitze NIP before saving
+            nip: sanitizeNip(formState.nip),
         });
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormState(prev => ({ ...prev, [name]: value }));
     };

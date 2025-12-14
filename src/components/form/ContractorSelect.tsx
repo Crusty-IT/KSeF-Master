@@ -1,7 +1,7 @@
-// client/src/components/form/ContractorSelect.tsx
+// src/components/form/ContractorSelect.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { listContractors } from '../../services/ksefApi';
+import { listContractors, type Contractor } from '../../services/ksefApi';
 import { isValidNip, sanitizeNip } from '../../helpers/nip';
 
 export type PartyValue = {
@@ -21,7 +21,16 @@ interface Props {
     allowBank?: boolean;
 }
 
-export default function ContractorSelect({ label, value, onChange, placeholderNip = 'np. 5250000000', className, required, allowBank }: Props) {
+export default function ContractorSelect({
+                                             label,
+                                             value,
+                                             onChange,
+                                             placeholderNip = 'np. 5250000000',
+                                             className,
+                                             required,
+                                             // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                             allowBank: _allowBank
+                                         }: Props) {
     const [nip, setNip] = useState<string>(value?.nip || '');
     const sanitized = useMemo(() => sanitizeNip(nip), [nip]);
     const nipOk = isValidNip(sanitized);
@@ -33,10 +42,9 @@ export default function ContractorSelect({ label, value, onChange, placeholderNi
         staleTime: 60_000
     });
 
-    const candidates = data || [];
+    const candidates: Contractor[] = data || [];
 
     useEffect(() => {
-        // jeśli wartości zewnętrzne się zmieniły, zsynchronizuj NIP
         if (value?.nip !== nip) setNip(value?.nip || '');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value?.nip]);
@@ -87,12 +95,17 @@ export default function ContractorSelect({ label, value, onChange, placeholderNi
                 <div className="suggestion">
                     <div className="hint">Znaleziono {candidates.length} kontrahentów — wybierz:</div>
                     <ul className="list">
-                        {candidates.map((c: any) => (
+                        {candidates.map((c: Contractor) => (
                             <li key={c.nip} className="list-item">
                                 <button
                                     type="button"
                                     className="link"
-                                    onClick={() => apply({ nip: c.nip, name: c.nazwa ?? c.name, address: c.adres ?? c.address, bankAccount: c.bankAccount })}
+                                    onClick={() => apply({
+                                        nip: c.nip,
+                                        name: c.nazwa ?? c.name ?? '',
+                                        address: c.adres ?? c.address ?? '',
+                                        bankAccount: c.bankAccount
+                                    })}
                                 >
                                     {c.nazwa ?? c.name} — {c.nip}
                                 </button>

@@ -1,5 +1,5 @@
-// client/src/components/form/NumberInput.tsx
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { parseNumberLike } from '../../helpers/money';
 
 interface Props {
@@ -14,13 +14,28 @@ interface Props {
     disabled?: boolean;
     required?: boolean;
     className?: string;
-    suffix?: string; // np. "szt", "kg"
+    suffix?: string;
 }
 
 export default function NumberInput({
-                                        label, value, onChange, placeholder, min, max, step = 0.01, name, disabled, required, className, suffix
+                                        label,
+                                        value,
+                                        onChange,
+                                        placeholder,
+                                        min,
+                                        max,
+                                        step: _step = 0.01,
+                                        name,
+                                        disabled,
+                                        required,
+                                        className,
+                                        suffix
                                     }: Props) {
     const [text, setText] = useState<string>(value === undefined ? '' : String(value));
+
+    // Używamy _step żeby uniknąć błędu unused variable
+    // W przyszłości można użyć do walidacji kroków
+    void _step;
 
     useEffect(() => {
         const v = value === undefined ? '' : String(value).replace('.', ',');

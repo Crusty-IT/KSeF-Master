@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
 import './ClientsView.css';
 import '../dashboard/Dashboard.css';
-import { Client, getClients, saveClient, deleteClient } from '../../services/clientService';
+import type { Client } from '../../services/clientService';
+import { getClients, saveClient, deleteClient } from '../../services/clientService';
 import ClientModal from '../../components/modal/ClientModal';
 import SideNav from '../../components/layout/SideNav';
 
@@ -48,7 +49,6 @@ export default function ClientsView() {
 
     return (
         <div className="dash-root">
-
             <SideNav />
 
             <main className="dash-main">
@@ -99,7 +99,6 @@ export default function ClientsView() {
                 </section>
             </main>
 
-            {/* Renderowanie modala */}
             <ClientModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
