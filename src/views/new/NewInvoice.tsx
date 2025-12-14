@@ -1,4 +1,4 @@
-// src/views/dashboard/NewInvoice.tsx
+// src/views/new/NewInvoice.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './NewInvoice.css';
 import '../dashboard/Dashboard.css';
@@ -11,6 +11,7 @@ import { formatPLN, round2 } from '../../helpers/money';
 import { isValidNip, sanitizeNip } from '../../helpers/nip';
 import { calcLine, type VatRate } from '../../helpers/vat';
 import SideNav from '../../components/layout/SideNav';
+import { sendInvoice, openSession, closeSession, type CreateInvoiceRequest } from '../../services/ksefApi';
 
 // ===== Types =====
 export type { VatRate } from '../../helpers/vat';
@@ -71,8 +72,7 @@ function loadSellerFromStorage(): Party {
             const obj = JSON.parse(raw);
             return { name: obj.name || '', nip: sanitizeNip(obj.nip || ''), address: obj.address || '', bankAccount: obj.bankAccount || '' };
         }
-        // eslint-disable-next-line no-empty
-    } catch { }
+    } catch { /* ignore */ }
     return { ...emptyParty };
 }
 
@@ -83,6 +83,15 @@ function loadDraft(): InvoiceDraft | null {
         const obj = JSON.parse(raw);
         return obj as InvoiceDraft;
     } catch { return null; }
+}
+
+// Mapowanie stawki VAT na format KSeF
+function mapVatRateToKsef(vatRate: VatRate): string {
+    if (typeof vatRate === 'number') {
+        return String(vatRate); // "23", "8", "5", "0"
+    }
+    // ZW, NP
+    return vatRate.toLowerCase(); // "zw", "np"
 }
 
 export default function NewInvoice() {
@@ -110,6 +119,7 @@ export default function NewInvoice() {
     const [draft, setDraft] = useState<InvoiceDraft>(initial);
     const [errors, setErrors] = useState<string[]>([]);
     const [info, setInfo] = useState<string | null>(null);
+    const [isSending, setIsSending] = useState(false);
 
     // Autosave every 1s after changes
     useEffect(() => {
@@ -117,10 +127,8 @@ export default function NewInvoice() {
         const t = setTimeout(() => {
             try {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-                // keep seller cached for prefill next time
                 localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
-                // eslint-disable-next-line no-empty
-            } catch { }
+            } catch { /* ignore */ }
         }, 1000);
         return () => clearTimeout(t);
     }, [draft]);
@@ -225,8 +233,7 @@ export default function NewInvoice() {
             localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
             setInfo('Szkic zapisany lokalnie.');
             setTimeout(() => setInfo(null), 2000);
-            // eslint-disable-next-line no-empty
-        } catch { }
+        } catch { /* ignore */ }
     }
 
     function clearForm() {
@@ -253,9 +260,88 @@ export default function NewInvoice() {
         setTimeout(() => window.print(), 100);
     }
 
+    // ===== WYSYŁKA DO KSeF =====
+    async function handleSendToKsef() {
+        // Walidacja
+        const errs = validate();
+        setErrors(errs);
+        if (errs.length > 0) {
+            return;
+        }
+
+        setIsSending(true);
+        setInfo('Otwieranie sesji KSeF...');
+
+        try {
+            // 1. Otwórz sesję online
+            const sessionResponse = await openSession();
+            if (!sessionResponse.success) {
+                throw new Error(sessionResponse.error || 'Nie udało się otworzyć sesji KSeF');
+            }
+
+            setInfo('Wysyłanie faktury do KSeF...');
+
+            // 2. Przygotuj dane faktury w formacie API
+            const invoiceRequest: CreateInvoiceRequest = {
+                invoiceNumber: draft.number,
+                issueDate: draft.issueDate,
+                saleDate: draft.sellDate,
+                seller: {
+                    nip: draft.seller.nip,
+                    name: draft.seller.name,
+                    countryCode: 'PL',
+                    addressLine1: draft.seller.address,
+                },
+                buyer: {
+                    nip: draft.buyer.nip,
+                    name: draft.buyer.name,
+                    countryCode: 'PL',
+                    addressLine1: draft.buyer.address,
+                },
+                items: draft.lines.map(line => ({
+                    name: line.name,
+                    unit: line.unit,
+                    quantity: line.qty,
+                    unitPriceNet: line.priceNet,
+                    vatRate: mapVatRateToKsef(line.vatRate),
+                })),
+                currency: draft.currency,
+                issuePlace: draft.place,
+            };
+
+            // 3. Wyślij fakturę
+            const sendResponse = await sendInvoice(invoiceRequest);
+
+            if (!sendResponse.success) {
+                throw new Error(sendResponse.error || 'Nie udało się wysłać faktury');
+            }
+
+            // 4. Zamknij sesję
+            await closeSession();
+
+            // 5. Sukces!
+            setInfo(`✅ Faktura wysłana do KSeF! Numer referencyjny: ${sendResponse.data?.elementReferenceNumber || 'brak'}`);
+
+            // Wyczyść formularz po sukcesie
+            setTimeout(() => {
+                if (window.confirm('Faktura została wysłana. Czy chcesz wyczyścić formularz?')) {
+                    clearForm();
+                }
+            }, 1000);
+
+        } catch (error) {
+            console.error('Błąd wysyłki do KSeF:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Nieznany błąd';
+            setErrors([`Błąd wysyłki do KSeF: ${errorMessage}`]);
+            setInfo(null);
+        } finally {
+            setIsSending(false);
+        }
+    }
+
     const errorBlock = errors.length > 0 ? (
         <div className="error-message" style={{ marginBottom: 12 }}>
-            <strong>Popraw poniższe błędy, aby wygenerować PDF:</strong>
+            <strong>Popraw poniższe błędy:</strong>
             <ul>{errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
         </div>
     ) : null;
@@ -269,7 +355,7 @@ export default function NewInvoice() {
             <main className="dash-main">
                 <header className="dash-header">
                     <h1>Nowa Faktura</h1>
-                    <p className="subtitle">MVP – wystaw fakturę sprzedaży i wygeneruj PDF</p>
+                    <p className="subtitle">Wystaw fakturę sprzedaży i wyślij do KSeF</p>
                 </header>
 
                 <section className="ops-section">
@@ -279,11 +365,23 @@ export default function NewInvoice() {
                             <PrimaryButton onClick={saveDraft} icon="💾">Zapisz szkic</PrimaryButton>
                             <button className="btn-light" onClick={clearForm}>Wyczyść</button>
                             <PrimaryButton onClick={handlePrint} icon="🖨">Generuj PDF</PrimaryButton>
-                            <button className="btn-light" disabled title="Dostępne wkrótce">Wyślij do KSeF</button>
+                            <PrimaryButton
+                                onClick={handleSendToKsef}
+                                icon="📤"
+                                disabled={isSending}
+                            >
+                                {isSending ? 'Wysyłanie...' : 'Wyślij do KSeF'}
+                            </PrimaryButton>
                         </div>
                     </div>
 
-                    {info ? <div className="info-banner">{info}</div> : null}
+                    {info ? <div className="info-banner" style={{
+                        padding: '12px',
+                        marginBottom: '12px',
+                        backgroundColor: info.startsWith('✅') ? '#d4edda' : '#cce5ff',
+                        borderRadius: '4px',
+                        color: info.startsWith('✅') ? '#155724' : '#004085'
+                    }}>{info}</div> : null}
                     {errorBlock}
 
                     {/* Krok 1: Dane dokumentu */}
