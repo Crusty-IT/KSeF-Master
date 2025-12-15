@@ -31,8 +31,7 @@ function saveSentInvoice(record: SentInvoiceRecord) {
     try {
         const raw = localStorage.getItem(SENT_INVOICES_KEY);
         const existing: SentInvoiceRecord[] = raw ? JSON.parse(raw) : [];
-        existing.unshift(record); // Dodaj na początek
-        // Zachowaj max 100 ostatnich
+        existing.unshift(record);
         const trimmed = existing.slice(0, 100);
         localStorage.setItem(SENT_INVOICES_KEY, JSON.stringify(trimmed));
     } catch { /* ignore */ }
@@ -97,14 +96,12 @@ function loadSellerFromStorage(sessionNip?: string | null): Party {
             const obj = JSON.parse(raw);
             return {
                 name: obj.name || '',
-                // Użyj NIP z sesji jeśli dostępny, w przeciwnym razie z localStorage
                 nip: sessionNip || sanitizeNip(obj.nip || ''),
                 address: obj.address || '',
                 bankAccount: obj.bankAccount || ''
             };
         }
     } catch { /* ignore */ }
-    // Jeśli brak w localStorage, zwróć pusty obiekt z NIP z sesji
     return { ...emptyParty, nip: sessionNip || '' };
 }
 
@@ -113,7 +110,6 @@ function loadDraft(sessionNip?: string | null): InvoiceDraft | null {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (!raw) return null;
         const obj = JSON.parse(raw) as InvoiceDraft;
-        // Zawsze nadpisz NIP sprzedawcy NIP-em z sesji
         if (sessionNip) {
             obj.seller.nip = sessionNip;
         }
@@ -121,7 +117,6 @@ function loadDraft(sessionNip?: string | null): InvoiceDraft | null {
     } catch { return null; }
 }
 
-// Mapowanie stawki VAT na format KSeF
 function mapVatRateToKsef(vatRate: VatRate): string {
     if (typeof vatRate === 'number') {
         return String(vatRate);
@@ -157,7 +152,6 @@ export default function NewInvoice() {
     const [info, setInfo] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
 
-    // Synchronizuj NIP sprzedawcy z sesją gdy się zmieni
     useEffect(() => {
         if (sessionNip && draft.seller.nip !== sessionNip) {
             setDraft(prev => ({
@@ -167,7 +161,6 @@ export default function NewInvoice() {
         }
     }, [sessionNip, draft.seller.nip]);
 
-    // Autosave every 1s after changes
     useEffect(() => {
         if (!mountedRef.current) { mountedRef.current = true; return; }
         const t = setTimeout(() => {
@@ -179,12 +172,10 @@ export default function NewInvoice() {
         return () => clearTimeout(t);
     }, [draft]);
 
-    // Recompute due date when issueDate or dueDays changes
     useEffect(() => {
         setDraft(prev => ({ ...prev, payment: { ...prev.payment, dueDate: addDays(prev.issueDate, prev.payment.dueDays) } }));
     }, [draft.issueDate, draft.payment.dueDays]);
 
-    // Enforce MPP -> przelew
     useEffect(() => {
         setDraft(prev => prev.payment.mpp && prev.payment.method !== 'przelew'
             ? { ...prev, payment: { ...prev.payment, method: 'przelew' } }
@@ -231,26 +222,22 @@ export default function NewInvoice() {
         if (!draft.issueDate) errs.push('Data wystawienia jest wymagana.');
         if (!draft.sellDate) errs.push('Data sprzedaży jest wymagana.');
         if (draft.currency !== 'PLN') errs.push('Waluta musi być PLN.');
-        // Parties
         if (!isValidNip(draft.seller.nip)) errs.push('NIP sprzedawcy jest nieprawidłowy (10 cyfr + suma kontrolna).');
         if (!isValidNip(draft.buyer.nip)) errs.push('NIP nabywcy jest nieprawidłowy (10 cyfr + suma kontrolna).');
         if (!draft.seller.name) errs.push('Nazwa sprzedawcy jest wymagana.');
         if (!draft.buyer.name) errs.push('Nazwa nabywcy jest wymagana.');
         if (!draft.seller.address) errs.push('Adres sprzedawcy jest wymagany.');
         if (!draft.buyer.address) errs.push('Adres nabywcy jest wymagany.');
-        // Lines
         if (!draft.lines.length) errs.push('Dodaj co najmniej jedną pozycję.');
         draft.lines.forEach((l, idx) => {
             if (!l.name) errs.push(`Pozycja #${idx + 1}: nazwa jest wymagana.`);
             if (!(l.qty > 0)) errs.push(`Pozycja #${idx + 1}: ilość musi być dodatnia.`);
             if (!(l.priceNet > 0)) errs.push(`Pozycja #${idx + 1}: cena netto musi być dodatnia.`);
         });
-        // Totals check
         const sumNet = totals.net;
         const sumVat = totals.vat;
         const sumGross = totals.gross;
         if (Math.abs(round2(sumNet + sumVat) - sumGross) > 0.01) errs.push('Suma kontrolna nie zgadza się: netto + VAT musi równać się brutto.');
-        // Payment
         if (draft.payment.mpp && draft.payment.method !== 'przelew') errs.push('Dla MPP metoda płatności musi być przelew.');
         if (draft.payment.method === 'przelew' && !draft.payment.bankAccount) errs.push('Dla przelewu wymagany jest rachunek bankowy.');
         return errs;
@@ -263,9 +250,11 @@ export default function NewInvoice() {
     function updateLine(index: number, patch: Partial<InvoiceLineDraft>) {
         setDraft(prev => ({ ...prev, lines: prev.lines.map((l, i) => i === index ? { ...l, ...patch } : l) }));
     }
+
     function addLine() {
         setDraft(prev => ({ ...prev, lines: [...prev.lines, { ...emptyLine }] }));
     }
+
     function removeLine(index: number) {
         setDraft(prev => ({ ...prev, lines: prev.lines.filter((_, i) => i !== index) }));
     }
@@ -304,8 +293,6 @@ export default function NewInvoice() {
         setTimeout(() => window.print(), 100);
     }
 
-    // ===== WYSYŁKA DO KSeF =====
-// ===== WYSYŁKA DO KSeF =====
     async function handleSendToKsef() {
         if (!isAuthenticated) {
             setErrors(['Musisz być zalogowany do KSeF, aby wysłać fakturę.']);
@@ -362,7 +349,6 @@ export default function NewInvoice() {
                 throw new Error(sendResponse.error || 'Nie udało się wysłać faktury');
             }
 
-            // ✅ Zapisz wysłaną fakturę do localStorage
             saveSentInvoice({
                 invoiceNumber: draft.number,
                 elementReferenceNumber: sendResponse.data?.elementReferenceNumber || '',
@@ -376,7 +362,7 @@ export default function NewInvoice() {
             await closeSession();
 
             const refNumber = sendResponse.data?.elementReferenceNumber;
-            setInfo(`✅ Faktura wysłana do KSeF!\n📋 Numer referencyjny: ${refNumber || 'brak'}`);
+            setInfo(`✅ Faktura wysłana do KSeF! Numer referencyjny: ${refNumber || 'brak'}`);
 
             setTimeout(() => {
                 if (window.confirm('Faktura została wysłana. Czy chcesz wyczyścić formularz?')) {
@@ -431,7 +417,6 @@ export default function NewInvoice() {
                         </div>
                     </div>
 
-                    {/* Ostrzeżenie jeśli nie zalogowany */}
                     {!isAuthenticated && (
                         <div className="warning-banner" style={{
                             padding: '12px',
@@ -485,28 +470,21 @@ export default function NewInvoice() {
 
                     {/* Krok 2: Strony */}
                     <div className="two-col">
-                        <div>
+                        <div className="card">
                             <h3>Sprzedawca</h3>
+
                             {/* NIP sprzedawcy - zablokowany, pobierany z sesji */}
-                            <div className="seller-nip-info" style={{
-                                padding: '12px',
-                                marginBottom: '12px',
-                                backgroundColor: 'rgba(0, 224, 150, 0.1)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(0, 224, 150, 0.3)'
-                            }}>
-                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-                                    NIP Sprzedawcy (z sesji KSeF)
-                                </div>
-                                <div style={{ fontSize: '16px', fontWeight: 600, color: '#00e096' }}>
+                            <div className="seller-nip-box">
+                                <span className="seller-nip-label">NIP Sprzedawcy (z sesji KSeF)</span>
+                                <span className="seller-nip-value">
                                     {draft.seller.nip || 'Zaloguj się do KSeF'}
-                                </div>
+                                </span>
                             </div>
-                            {/* Pozostałe pola sprzedawcy */}
-                            <div className="field">
-                                <label className="label">Nazwa firmy *</label>
+
+                            {/* Pozostałe pola sprzedawcy - używamy tego samego stylu co reszta formularza */}
+                            <label>
+                                Nazwa firmy *
                                 <input
-                                    className="input"
                                     type="text"
                                     value={draft.seller.name}
                                     onChange={(e) => setDraft(prev => ({
@@ -515,11 +493,11 @@ export default function NewInvoice() {
                                     }))}
                                     placeholder="Nazwa sprzedawcy"
                                 />
-                            </div>
-                            <div className="field">
-                                <label className="label">Adres *</label>
+                            </label>
+
+                            <label>
+                                Adres *
                                 <input
-                                    className="input"
                                     type="text"
                                     value={draft.seller.address}
                                     onChange={(e) => setDraft(prev => ({
@@ -528,11 +506,11 @@ export default function NewInvoice() {
                                     }))}
                                     placeholder="Ulica, numer, kod pocztowy, miasto"
                                 />
-                            </div>
-                            <div className="field">
-                                <label className="label">Rachunek bankowy</label>
+                            </label>
+
+                            <label>
+                                Rachunek bankowy
                                 <input
-                                    className="input"
                                     type="text"
                                     value={draft.seller.bankAccount || ''}
                                     onChange={(e) => setDraft(prev => ({
@@ -541,24 +519,26 @@ export default function NewInvoice() {
                                     }))}
                                     placeholder="PL00 0000 0000 0000 0000 0000 0000"
                                 />
-                            </div>
+                            </label>
                         </div>
-                        <div>
+
+                        <div className="card">
                             <h3>Nabywca</h3>
-                            <ContractorSelect label="Nabywca" value={draft.buyer} onChange={updateBuyer} />
+                            <ContractorSelect value={draft.buyer} onChange={updateBuyer} />
                         </div>
                     </div>
 
-                    {/* Krok 3: Pozycje i płatność */}
+                    {/* Krok 3: Pozycje faktury */}
                     <div className="card">
+                        <h3>Pozycje faktury</h3>
                         <div className="table-wrap">
-                            <table className="data-table">
+                            <table className="data-table invoice-lines-table">
                                 <thead>
                                 <tr>
-                                    <th style={{ minWidth: 200 }}>Nazwa</th>
+                                    <th>Nazwa towaru/usługi</th>
                                     <th>PKWiU</th>
                                     <th>Ilość</th>
-                                    <th>j.m.</th>
+                                    <th>J.m.</th>
                                     <th>Cena netto</th>
                                     <th>VAT</th>
                                     <th>Rabat %</th>
@@ -573,33 +553,92 @@ export default function NewInvoice() {
                                     const res = calcLine({ qty: l.qty, priceNet: l.priceNet, discount: l.discount || 0, vatRate: l.vatRate });
                                     return (
                                         <tr key={idx}>
-                                            <td><input type="text" value={l.name} onChange={(e) => updateLine(idx, { name: e.target.value })} placeholder="Nazwa towaru/usługi" /></td>
-                                            <td><input type="text" value={l.pkwiu || ''} onChange={(e) => updateLine(idx, { pkwiu: e.target.value })} placeholder="opcjonalnie" /></td>
-                                            <td style={{ width: 90 }}><NumberInput value={l.qty} onChange={(v) => updateLine(idx, { qty: v ?? 0 })} min={0} /></td>
-                                            <td style={{ width: 80 }}><input type="text" value={l.unit} onChange={(e) => updateLine(idx, { unit: e.target.value })} /></td>
-                                            <td style={{ width: 130 }}><CurrencyInput value={l.priceNet} onChange={(v) => updateLine(idx, { priceNet: v ?? 0 })} /></td>
-                                            <td style={{ width: 100 }}><VatSelect value={l.vatRate} onChange={(v) => updateLine(idx, { vatRate: v })} /></td>
-                                            <td style={{ width: 100 }}><NumberInput value={l.discount || 0} onChange={(v) => updateLine(idx, { discount: v })} min={0} /></td>
-                                            <td>{formatPLN(res.net)}</td>
-                                            <td>{formatPLN(res.vat)}</td>
-                                            <td>{formatPLN(res.gross)}</td>
-                                            <td><button className="btn-light small" onClick={() => removeLine(idx)}>Usuń</button></td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={l.name}
+                                                    onChange={(e) => updateLine(idx, { name: e.target.value })}
+                                                    placeholder="Nazwa towaru/usługi"
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={l.pkwiu || ''}
+                                                    onChange={(e) => updateLine(idx, { pkwiu: e.target.value })}
+                                                    placeholder="opcjonalnie"
+                                                />
+                                            </td>
+                                            <td>
+                                                <NumberInput
+                                                    value={l.qty}
+                                                    onChange={(v) => updateLine(idx, { qty: v ?? 0 })}
+                                                    min={0}
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={l.unit}
+                                                    onChange={(e) => updateLine(idx, { unit: e.target.value })}
+                                                />
+                                            </td>
+                                            <td>
+                                                <CurrencyInput
+                                                    value={l.priceNet}
+                                                    onChange={(v) => updateLine(idx, { priceNet: v ?? 0 })}
+                                                />
+                                            </td>
+                                            <td>
+                                                <VatSelect
+                                                    value={l.vatRate}
+                                                    onChange={(v) => updateLine(idx, { vatRate: v })}
+                                                />
+                                            </td>
+                                            <td>
+                                                <NumberInput
+                                                    value={l.discount || 0}
+                                                    onChange={(v) => updateLine(idx, { discount: v })}
+                                                    min={0}
+                                                />
+                                            </td>
+                                            <td className="text-right">{formatPLN(res.net)}</td>
+                                            <td className="text-right">{formatPLN(res.vat)}</td>
+                                            <td className="text-right">{formatPLN(res.gross)}</td>
+                                            <td>
+                                                <button
+                                                    className="btn-light small danger"
+                                                    onClick={() => removeLine(idx)}
+                                                    title="Usuń pozycję"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </td>
                                         </tr>
                                     );
                                 })}
+                                </tbody>
+                                <tfoot>
                                 <tr>
                                     <td colSpan={11}>
                                         <button className="btn-light" onClick={addLine}>+ Dodaj pozycję</button>
                                     </td>
                                 </tr>
-                                </tbody>
+                                </tfoot>
                             </table>
                         </div>
 
                         {/* Pasek sumaryczny */}
-                        <div className="summary-bar">Netto: <strong>{formatPLN(totals.net)}</strong> | VAT: <strong>{formatPLN(totals.vat)}</strong> | Brutto: <strong>{formatPLN(totals.gross)}</strong></div>
+                        <div className="summary-bar">
+                            <span>Netto: <strong>{formatPLN(totals.net)}</strong></span>
+                            <span>VAT: <strong>{formatPLN(totals.vat)}</strong></span>
+                            <span>Brutto: <strong>{formatPLN(totals.gross)}</strong></span>
+                        </div>
+                    </div>
 
-                        {/* Płatność */}
+                    {/* Krok 4: Płatność */}
+                    <div className="card">
+                        <h3>Płatność</h3>
                         <div className="field-row">
                             <label>Metoda płatności
                                 <select value={draft.payment.method} onChange={(e) => setDraft(prev => ({ ...prev, payment: { ...prev.payment, method: e.target.value as InvoiceDraft['payment']['method'] } }))}>
@@ -616,10 +655,14 @@ export default function NewInvoice() {
                             <label>Rachunek bankowy
                                 <input type="text" value={draft.payment.bankAccount || ''} onChange={(e) => setDraft(prev => ({ ...prev, payment: { ...prev.payment, bankAccount: e.target.value } }))} placeholder="PL.. lub 26 cyfr" />
                             </label>
-                            <label className="checkbox"><input type="checkbox" checked={draft.payment.mpp} onChange={(e) => setDraft(prev => ({ ...prev, payment: { ...prev.payment, mpp: e.target.checked } }))} /> MPP (Mechanizm Podzielonej Płatności)</label>
                         </div>
+                        <label className="checkbox">
+                            <input type="checkbox" checked={draft.payment.mpp} onChange={(e) => setDraft(prev => ({ ...prev, payment: { ...prev.payment, mpp: e.target.checked } }))} />
+                            MPP (Mechanizm Podzielonej Płatności)
+                        </label>
 
-                        <label>Uwagi do faktury
+                        <label style={{ marginTop: '16px', display: 'block' }}>
+                            Uwagi do faktury
                             <textarea value={draft.notes || ''} onChange={(e) => setDraft(prev => ({ ...prev, notes: e.target.value }))} rows={3} />
                         </label>
                     </div>

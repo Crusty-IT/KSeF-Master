@@ -71,7 +71,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-top: 25px !important;
+    margin-top: 20px !important;
 }
 
 /* Pojedynczy link w nawigacji */
