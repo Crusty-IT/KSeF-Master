@@ -58,7 +58,7 @@
 .side-nav .new-invoice {
     width: 100%;
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 40px !important;
     padding: 12px;
     text-decoration: none;
     box-sizing: border-box;
@@ -71,6 +71,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 25px !important;
 }
 
 /* Pojedynczy link w nawigacji */
@@ -137,45 +138,48 @@
     color: #555;
 }
 
-/* ===== Footer z logo po lewej i copyright po środku ===== */
+/* ===== Footer - logo po lewej, copyright po środku w jednej linii ===== */
 .side-nav-footer {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px 20px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 15px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.15);
+    background: rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
+    gap: 12px;
+    max-height: 45px;
 }
 
-/* Link do logo - zawsze po lewej */
+/* Link do logo - po lewej */
 .footer-logo-link {
     display: flex;
     align-items: center;
     text-decoration: none;
     transition: all 0.2s ease;
-    align-self: flex-start;
+    flex-shrink: 0;
 }
 
 .footer-logo-link:hover .footer-logo {
     opacity: 1;
-    filter: brightness(1.3);
-    transform: translateX(2px);
+    filter: brightness(1.4);
+    transform: scale(1.05);
 }
 
 .footer-logo {
-    height: 20px;
+    height: 77px;
     width: auto;
-    opacity: 0.7;
-    transition: all 0.3s ease;
+    opacity: 0.75;
+    transition: all 0.25s ease;
 }
 
-/* Copyright - wyśrodkowany */
+/* Copyright - po środku/prawej */
 .footer-copyright {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.3);
-    text-align: center;
-    letter-spacing: 0.3px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    font-weight: 400;
 }
 
 /* Responsywność dla małych ekranów */
@@ -185,16 +189,16 @@
     }
 
     .side-nav-footer {
-        padding: 12px 16px;
+        padding: 14px 16px;
         gap: 8px;
     }
 
     .footer-logo {
-        height: 16px;
+        height: 18px;
     }
 
     .footer-copyright {
-        font-size: 9px;
+        font-size: 10px;
     }
 }
 

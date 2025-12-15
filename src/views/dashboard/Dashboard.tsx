@@ -76,30 +76,15 @@ export default function Dashboard() {
 
                 {/* Komunikat o braku logowania */}
                 {!isAuthenticated && (
-                    <div style={{
-                        background: 'rgba(251, 191, 36, 0.1)',
-                        border: '1px solid rgba(251, 191, 36, 0.3)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        marginBottom: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                    }}>
-                        <span style={{ fontSize: '24px' }}>⚠️</span>
-                        <div>
-                            <strong style={{ color: '#fcd34d' }}>Nie jesteś zalogowany</strong>
-                            <p style={{ margin: '4px 0 0', color: '#fde68a', fontSize: '14px' }}>
+                    <div className="alert-box warning">
+                        <span className="alert-icon">⚠️</span>
+                        <div className="alert-content">
+                            <strong>Nie jesteś zalogowany</strong>
+                            <p>
                                 Aby pobierać faktury z KSeF, musisz się zalogować.{' '}
                                 <button
                                     onClick={() => navigate('/')}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#60a5fa',
-                                        cursor: 'pointer',
-                                        textDecoration: 'underline'
-                                    }}
+                                    className="link-button"
                                 >
                                     Przejdź do logowania
                                 </button>
@@ -108,7 +93,7 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Sekcja KPI */}
+                {/* Sekcja KPI - nowy layout */}
                 <section className="kpi-grid" aria-label="Szybka analiza">
                     <div className="kpi-card">
                         <div className="kpi-title">Faktury odebrane (ostatni miesiąc)</div>
@@ -142,20 +127,18 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {/* Tabela faktur */}
+                {/* Tabela faktur - NOWY UKŁAD */}
                 <section className="ops-section">
-                    <div className="ops-header">
+                    <div className="section-header-centered">
                         <h2>Ostatnio Odebrane Dokumenty KSeF</h2>
-                        <div className="ops-actions">
-                            <button
-                                className="btn-accent"
-                                onClick={() => refetch()}
-                                disabled={!isAuthenticated || isLoading || isFetching}
-                            >
-                                <span className="btn-icon" aria-hidden>⟳</span>
-                                {isLoading || isFetching ? 'Pobieranie...' : 'Pobierz z KSeF'}
-                            </button>
-                        </div>
+                        <button
+                            className="btn-fetch"
+                            onClick={() => refetch()}
+                            disabled={!isAuthenticated || isLoading || isFetching}
+                        >
+                            <span className="btn-icon" aria-hidden>⟳</span>
+                            <span>{isLoading || isFetching ? 'Pobieranie...' : 'Pobierz z KSeF'}</span>
+                        </button>
                     </div>
 
                     <div className="table-wrap">

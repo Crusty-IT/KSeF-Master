@@ -11,7 +11,32 @@ import { formatPLN, round2 } from '../../helpers/money';
 import { isValidNip, sanitizeNip } from '../../helpers/nip';
 import { calcLine, type VatRate } from '../../helpers/vat';
 import SideNav from '../../components/layout/SideNav';
+import { useAuth } from '../../context/AuthContext';
 import { sendInvoice, openSession, closeSession, type CreateInvoiceRequest } from '../../services/ksefApi';
+
+// Klucz do przechowywania wysłanych faktur
+const SENT_INVOICES_KEY = 'sentInvoices';
+
+interface SentInvoiceRecord {
+    invoiceNumber: string;
+    elementReferenceNumber: string;
+    sentAt: string;
+    sellerNip: string;
+    buyerNip: string;
+    buyerName: string;
+    grossAmount: number;
+}
+
+function saveSentInvoice(record: SentInvoiceRecord) {
+    try {
+        const raw = localStorage.getItem(SENT_INVOICES_KEY);
+        const existing: SentInvoiceRecord[] = raw ? JSON.parse(raw) : [];
+        existing.unshift(record); // Dodaj na początek
+        // Zachowaj max 100 ostatnich
+        const trimmed = existing.slice(0, 100);
+        localStorage.setItem(SENT_INVOICES_KEY, JSON.stringify(trimmed));
+    } catch { /* ignore */ }
+}
 
 // ===== Types =====
 export type { VatRate } from '../../helpers/vat';
@@ -31,8 +56,8 @@ export interface Party { name: string; nip: string; address: string; bankAccount
 export interface InvoiceDraft {
     number: string;
     place: string;
-    issueDate: string; // yyyy-mm-dd
-    sellDate: string;  // yyyy-mm-dd
+    issueDate: string;
+    sellDate: string;
     currency: 'PLN';
     seller: Party;
     buyer: Party;
@@ -65,42 +90,53 @@ function suggestNumber(): string {
 const emptyParty: Party = { name: '', nip: '', address: '', bankAccount: '' };
 const emptyLine: InvoiceLineDraft = { name: '', qty: 1, unit: 'szt.', priceNet: 0, vatRate: 23, pkwiu: '', discount: 0 };
 
-function loadSellerFromStorage(): Party {
+function loadSellerFromStorage(sessionNip?: string | null): Party {
     try {
         const raw = localStorage.getItem(SELLER_KEY);
         if (raw) {
             const obj = JSON.parse(raw);
-            return { name: obj.name || '', nip: sanitizeNip(obj.nip || ''), address: obj.address || '', bankAccount: obj.bankAccount || '' };
+            return {
+                name: obj.name || '',
+                // Użyj NIP z sesji jeśli dostępny, w przeciwnym razie z localStorage
+                nip: sessionNip || sanitizeNip(obj.nip || ''),
+                address: obj.address || '',
+                bankAccount: obj.bankAccount || ''
+            };
         }
     } catch { /* ignore */ }
-    return { ...emptyParty };
+    // Jeśli brak w localStorage, zwróć pusty obiekt z NIP z sesji
+    return { ...emptyParty, nip: sessionNip || '' };
 }
 
-function loadDraft(): InvoiceDraft | null {
+function loadDraft(sessionNip?: string | null): InvoiceDraft | null {
     try {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (!raw) return null;
-        const obj = JSON.parse(raw);
-        return obj as InvoiceDraft;
+        const obj = JSON.parse(raw) as InvoiceDraft;
+        // Zawsze nadpisz NIP sprzedawcy NIP-em z sesji
+        if (sessionNip) {
+            obj.seller.nip = sessionNip;
+        }
+        return obj;
     } catch { return null; }
 }
 
 // Mapowanie stawki VAT na format KSeF
 function mapVatRateToKsef(vatRate: VatRate): string {
     if (typeof vatRate === 'number') {
-        return String(vatRate); // "23", "8", "5", "0"
+        return String(vatRate);
     }
-    // ZW, NP
-    return vatRate.toLowerCase(); // "zw", "np"
+    return vatRate.toLowerCase();
 }
 
 export default function NewInvoice() {
     const mountedRef = useRef(false);
+    const { nip: sessionNip, isAuthenticated } = useAuth();
 
     const initial: InvoiceDraft = useMemo(() => {
-        const fromDraft = loadDraft();
+        const fromDraft = loadDraft(sessionNip);
         if (fromDraft) return fromDraft;
-        const seller = loadSellerFromStorage();
+        const seller = loadSellerFromStorage(sessionNip);
         const issue = today();
         return {
             number: suggestNumber(),
@@ -114,12 +150,22 @@ export default function NewInvoice() {
             payment: { method: 'przelew', dueDays: 14, dueDate: addDays(issue, 14), bankAccount: seller.bankAccount, mpp: false },
             notes: '',
         };
-    }, []);
+    }, [sessionNip]);
 
     const [draft, setDraft] = useState<InvoiceDraft>(initial);
     const [errors, setErrors] = useState<string[]>([]);
     const [info, setInfo] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
+
+    // Synchronizuj NIP sprzedawcy z sesją gdy się zmieni
+    useEffect(() => {
+        if (sessionNip && draft.seller.nip !== sessionNip) {
+            setDraft(prev => ({
+                ...prev,
+                seller: { ...prev.seller, nip: sessionNip }
+            }));
+        }
+    }, [sessionNip, draft.seller.nip]);
 
     // Autosave every 1s after changes
     useEffect(() => {
@@ -210,9 +256,6 @@ export default function NewInvoice() {
         return errs;
     }
 
-    function updateSeller(v: PartyValue) {
-        setDraft(prev => ({ ...prev, seller: { name: v.name, nip: sanitizeNip(v.nip), address: v.address, bankAccount: v.bankAccount } }));
-    }
     function updateBuyer(v: PartyValue) {
         setDraft(prev => ({ ...prev, buyer: { name: v.name, nip: sanitizeNip(v.nip), address: v.address, bankAccount: v.bankAccount } }));
     }
@@ -238,16 +281,17 @@ export default function NewInvoice() {
 
     function clearForm() {
         localStorage.removeItem(DRAFT_KEY);
+        const seller = loadSellerFromStorage(sessionNip);
         setDraft({
             number: suggestNumber(),
             place: 'Warszawa',
             issueDate: today(),
             sellDate: today(),
             currency: 'PLN',
-            seller: loadSellerFromStorage(),
+            seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(today(), 14), bankAccount: loadSellerFromStorage().bankAccount, mpp: false },
+            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(today(), 14), bankAccount: seller.bankAccount, mpp: false },
             notes: '',
         });
         setErrors([]);
@@ -261,8 +305,13 @@ export default function NewInvoice() {
     }
 
     // ===== WYSYŁKA DO KSeF =====
+// ===== WYSYŁKA DO KSeF =====
     async function handleSendToKsef() {
-        // Walidacja
+        if (!isAuthenticated) {
+            setErrors(['Musisz być zalogowany do KSeF, aby wysłać fakturę.']);
+            return;
+        }
+
         const errs = validate();
         setErrors(errs);
         if (errs.length > 0) {
@@ -273,7 +322,6 @@ export default function NewInvoice() {
         setInfo('Otwieranie sesji KSeF...');
 
         try {
-            // 1. Otwórz sesję online
             const sessionResponse = await openSession();
             if (!sessionResponse.success) {
                 throw new Error(sessionResponse.error || 'Nie udało się otworzyć sesji KSeF');
@@ -281,7 +329,6 @@ export default function NewInvoice() {
 
             setInfo('Wysyłanie faktury do KSeF...');
 
-            // 2. Przygotuj dane faktury w formacie API
             const invoiceRequest: CreateInvoiceRequest = {
                 invoiceNumber: draft.number,
                 issueDate: draft.issueDate,
@@ -309,25 +356,33 @@ export default function NewInvoice() {
                 issuePlace: draft.place,
             };
 
-            // 3. Wyślij fakturę
             const sendResponse = await sendInvoice(invoiceRequest);
 
             if (!sendResponse.success) {
                 throw new Error(sendResponse.error || 'Nie udało się wysłać faktury');
             }
 
-            // 4. Zamknij sesję
+            // ✅ Zapisz wysłaną fakturę do localStorage
+            saveSentInvoice({
+                invoiceNumber: draft.number,
+                elementReferenceNumber: sendResponse.data?.elementReferenceNumber || '',
+                sentAt: new Date().toISOString(),
+                sellerNip: draft.seller.nip,
+                buyerNip: draft.buyer.nip,
+                buyerName: draft.buyer.name,
+                grossAmount: totals.gross,
+            });
+
             await closeSession();
 
-            // 5. Sukces!
-            setInfo(`✅ Faktura wysłana do KSeF! Numer referencyjny: ${sendResponse.data?.elementReferenceNumber || 'brak'}`);
+            const refNumber = sendResponse.data?.elementReferenceNumber;
+            setInfo(`✅ Faktura wysłana do KSeF!\n📋 Numer referencyjny: ${refNumber || 'brak'}`);
 
-            // Wyczyść formularz po sukcesie
             setTimeout(() => {
                 if (window.confirm('Faktura została wysłana. Czy chcesz wyczyścić formularz?')) {
                     clearForm();
                 }
-            }, 1000);
+            }, 1500);
 
         } catch (error) {
             console.error('Błąd wysyłki do KSeF:', error);
@@ -368,12 +423,27 @@ export default function NewInvoice() {
                             <PrimaryButton
                                 onClick={handleSendToKsef}
                                 icon="📤"
-                                disabled={isSending}
+                                disabled={isSending || !isAuthenticated}
+                                title={!isAuthenticated ? 'Zaloguj się do KSeF, aby wysłać fakturę' : undefined}
                             >
                                 {isSending ? 'Wysyłanie...' : 'Wyślij do KSeF'}
                             </PrimaryButton>
                         </div>
                     </div>
+
+                    {/* Ostrzeżenie jeśli nie zalogowany */}
+                    {!isAuthenticated && (
+                        <div className="warning-banner" style={{
+                            padding: '12px',
+                            marginBottom: '12px',
+                            backgroundColor: '#fff3cd',
+                            borderRadius: '4px',
+                            color: '#856404',
+                            border: '1px solid #ffc107'
+                        }}>
+                            ⚠️ Nie jesteś zalogowany do KSeF. Aby wysłać fakturę, najpierw się zaloguj.
+                        </div>
+                    )}
 
                     {info ? <div className="info-banner" style={{
                         padding: '12px',
@@ -417,7 +487,61 @@ export default function NewInvoice() {
                     <div className="two-col">
                         <div>
                             <h3>Sprzedawca</h3>
-                            <ContractorSelect label="Sprzedawca" value={draft.seller} onChange={updateSeller} />
+                            {/* NIP sprzedawcy - zablokowany, pobierany z sesji */}
+                            <div className="seller-nip-info" style={{
+                                padding: '12px',
+                                marginBottom: '12px',
+                                backgroundColor: 'rgba(0, 224, 150, 0.1)',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(0, 224, 150, 0.3)'
+                            }}>
+                                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                                    NIP Sprzedawcy (z sesji KSeF)
+                                </div>
+                                <div style={{ fontSize: '16px', fontWeight: 600, color: '#00e096' }}>
+                                    {draft.seller.nip || 'Zaloguj się do KSeF'}
+                                </div>
+                            </div>
+                            {/* Pozostałe pola sprzedawcy */}
+                            <div className="field">
+                                <label className="label">Nazwa firmy *</label>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={draft.seller.name}
+                                    onChange={(e) => setDraft(prev => ({
+                                        ...prev,
+                                        seller: { ...prev.seller, name: e.target.value }
+                                    }))}
+                                    placeholder="Nazwa sprzedawcy"
+                                />
+                            </div>
+                            <div className="field">
+                                <label className="label">Adres *</label>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={draft.seller.address}
+                                    onChange={(e) => setDraft(prev => ({
+                                        ...prev,
+                                        seller: { ...prev.seller, address: e.target.value }
+                                    }))}
+                                    placeholder="Ulica, numer, kod pocztowy, miasto"
+                                />
+                            </div>
+                            <div className="field">
+                                <label className="label">Rachunek bankowy</label>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={draft.seller.bankAccount || ''}
+                                    onChange={(e) => setDraft(prev => ({
+                                        ...prev,
+                                        seller: { ...prev.seller, bankAccount: e.target.value }
+                                    }))}
+                                    placeholder="PL00 0000 0000 0000 0000 0000 0000"
+                                />
+                            </div>
                         </div>
                         <div>
                             <h3>Nabywca</h3>
