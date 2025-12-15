@@ -74,22 +74,24 @@ export default function SideNav() {
                 </nav>
             </div>
 
-            {/* Footer z logo - zawsze na dole */}
+            {/* Footer z logo po lewej i copyright po środku */}
             <footer className="side-nav-footer">
                 <a
                     href="https://crusty-it.github.io/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="footer-link"
+                    className="footer-logo-link"
                     aria-label="Strona wykonana przez Crusty IT"
                 >
-                    <span className="footer-text">Stworzone przez</span>
                     <img
                         src="https://raw.githubusercontent.com/shellupski/Moja-strona/main/images/logo_horizontaly.svg"
                         alt="Crusty IT Logo"
                         className="footer-logo"
                     />
                 </a>
+                <div className="footer-copyright">
+                    © 2025 KSeF Master
+                </div>
             </footer>
         </aside>
     );
