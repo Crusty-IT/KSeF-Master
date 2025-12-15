@@ -138,12 +138,9 @@ export default function Settings() {
                     {/* Profil firmy */}
                     <div className="card">
                         <h3>Profil firmy (Sprzedawca)</h3>
-                        <div className="two-col">
+                        <div>
                             <label>Nazwa
                                 <input type="text" value={seller.name} onChange={(e) => setSeller((s) => ({ ...s, name: e.target.value }))} />
-                            </label>
-                            <label>NIP
-                                <input type="text" value={seller.nip} onChange={(e) => setSeller((s) => ({ ...s, nip: e.target.value }))} placeholder="10 cyfr" />
                             </label>
                         </div>
                         <label>Adres

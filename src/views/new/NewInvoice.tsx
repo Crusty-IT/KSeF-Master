@@ -13,6 +13,7 @@ import { calcLine, type VatRate } from '../../helpers/vat';
 import SideNav from '../../components/layout/SideNav';
 import { useAuth } from '../../context/AuthContext';
 import { sendInvoice, openSession, closeSession, type CreateInvoiceRequest } from '../../services/ksefApi';
+import { getSeller, saveSeller, getSettings } from '../../services/settings';
 
 // Klucz do przechowywania wysłanych faktur
 const SENT_INVOICES_KEY = 'sentInvoices';
@@ -66,7 +67,6 @@ export interface InvoiceDraft {
 }
 
 const DRAFT_KEY = 'invoiceDraft';
-const SELLER_KEY = 'sellerParty';
 
 function today(): string {
     const d = new Date();
@@ -89,20 +89,14 @@ function suggestNumber(): string {
 const emptyParty: Party = { name: '', nip: '', address: '', bankAccount: '' };
 const emptyLine: InvoiceLineDraft = { name: '', qty: 1, unit: 'szt.', priceNet: 0, vatRate: 23, pkwiu: '', discount: 0 };
 
-function loadSellerFromStorage(sessionNip?: string | null): Party {
-    try {
-        const raw = localStorage.getItem(SELLER_KEY);
-        if (raw) {
-            const obj = JSON.parse(raw);
-            return {
-                name: obj.name || '',
-                nip: sessionNip || sanitizeNip(obj.nip || ''),
-                address: obj.address || '',
-                bankAccount: obj.bankAccount || ''
-            };
-        }
-    } catch { /* ignore */ }
-    return { ...emptyParty, nip: sessionNip || '' };
+function loadSellerFromSettings(sessionNip?: string | null): Party {
+    const s = getSeller();
+    return {
+        name: s.name || '',
+        nip: sessionNip || sanitizeNip(s.nip || ''),
+        address: s.address || '',
+        bankAccount: s.bankAccount || ''
+    };
 }
 
 function loadDraft(sessionNip?: string | null): InvoiceDraft | null {
@@ -131,18 +125,25 @@ export default function NewInvoice() {
     const initial: InvoiceDraft = useMemo(() => {
         const fromDraft = loadDraft(sessionNip);
         if (fromDraft) return fromDraft;
-        const seller = loadSellerFromStorage(sessionNip);
+        const seller = loadSellerFromSettings(sessionNip);
+        const appSettings = getSettings();
         const issue = today();
         return {
             number: suggestNumber(),
-            place: 'Warszawa',
+            place: appSettings.invoicing.placeDefault,
             issueDate: issue,
             sellDate: issue,
             currency: 'PLN',
             seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(issue, 14), bankAccount: seller.bankAccount, mpp: false },
+            payment: {
+                method: appSettings.invoicing.paymentMethodDefault,
+                dueDays: appSettings.invoicing.dueDaysDefault,
+                dueDate: addDays(issue, appSettings.invoicing.dueDaysDefault),
+                bankAccount: seller.bankAccount,
+                mpp: appSettings.invoicing.mppDefault,
+            },
             notes: '',
         };
     }, [sessionNip]);
@@ -166,7 +167,7 @@ export default function NewInvoice() {
         const t = setTimeout(() => {
             try {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-                localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
+                saveSeller(draft.seller);
             } catch { /* ignore */ }
         }, 1000);
         return () => clearTimeout(t);
@@ -262,7 +263,7 @@ export default function NewInvoice() {
     function saveDraft() {
         try {
             localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-            localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
+            saveSeller(draft.seller);
             setInfo('Szkic zapisany lokalnie.');
             setTimeout(() => setInfo(null), 2000);
         } catch { /* ignore */ }
@@ -270,17 +271,24 @@ export default function NewInvoice() {
 
     function clearForm() {
         localStorage.removeItem(DRAFT_KEY);
-        const seller = loadSellerFromStorage(sessionNip);
+        const seller = loadSellerFromSettings(sessionNip);
+        const appSettings = getSettings();
         setDraft({
             number: suggestNumber(),
-            place: 'Warszawa',
+            place: appSettings.invoicing.placeDefault,
             issueDate: today(),
             sellDate: today(),
             currency: 'PLN',
             seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(today(), 14), bankAccount: seller.bankAccount, mpp: false },
+            payment: {
+                method: appSettings.invoicing.paymentMethodDefault,
+                dueDays: appSettings.invoicing.dueDaysDefault,
+                dueDate: addDays(today(), appSettings.invoicing.dueDaysDefault),
+                bankAccount: seller.bankAccount,
+                mpp: appSettings.invoicing.mppDefault,
+            },
             notes: '',
         });
         setErrors([]);
