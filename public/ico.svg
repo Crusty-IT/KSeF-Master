@@ -1,0 +1,19 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Tło dokumentu -->
+  <rect x="10" y="10" width="44" height="52" rx="6" fill="#E0F2FE" stroke="#1D4ED8" stroke-width="2"/>
+  
+  <!-- Zagięty róg -->
+  <path d="M54 10 L44 10 L54 20 Z" fill="#93C5FD"/>
+
+  <!-- Nagłówek -->
+  <rect x="16" y="18" width="32" height="6" rx="1" fill="#3B82F6"/>
+
+  <!-- Linie tekstu -->
+  <rect x="16" y="28" width="24" height="4" rx="1" fill="#60A5FA"/>
+  <rect x="16" y="36" width="20" height="4" rx="1" fill="#93C5FD"/>
+  <rect x="16" y="44" width="28" height="4" rx="1" fill="#BFDBFE"/>
+
+  <!-- Symbol dolara -->
+  <circle cx="48" cy="54" r="8" fill="#1D4ED8"/>
+  <text x="44" y="58" font-family="Arial, sans-serif" font-size="10" fill="white">$</text>
+</svg>

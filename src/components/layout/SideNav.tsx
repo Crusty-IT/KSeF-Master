@@ -17,7 +17,20 @@ export default function SideNav() {
             <div className="side-nav-content">
                 <div className="brand">
                     <div className="logo-dot" aria-hidden="true" />
-                    <span className="brand-name">KSeF Master</span>
+
+                    <span className="brand-name">
+            KSeF Master
+            <a
+                className="brand-icon-link"
+                aria-label="Ikona KSeF Master"
+            >
+                <img
+                    src="/ico.svg"
+                    alt="Ikona"
+                    className="brand-icon"
+                />
+            </a>
+        </span>
                 </div>
 
                 {/* Status sesji */}
@@ -89,10 +102,21 @@ export default function SideNav() {
                         className="footer-logo"
                     />
                 </a>
+
                 <span className="footer-copyright">
-                    © 2025 KSeF Master
-                </span>
+    © 2025 KSeF Master
+    <span className="footer-icon-wrapper" aria-hidden="true">
+        <img
+            src="/ico.svg"
+            alt=""
+            className="footer-icon"
+        />
+    </span>
+</span>
+
+
             </footer>
+
         </aside>
     );
 }

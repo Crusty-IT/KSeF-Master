@@ -4,7 +4,6 @@ import './Settings.css';
 import '../dashboard/Dashboard.css';
 import SideNav from '../../components/layout/SideNav';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
-import { isValidNip, sanitizeNip } from '../../helpers/nip';
 import {
     getSettings,
     saveSettings,
@@ -28,23 +27,19 @@ export default function Settings() {
 
     function saveAll() {
         const errs: string[] = [];
-        const nip = sanitizeNip(seller.nip);
 
         if (!seller.name.trim()) errs.push('Nazwa firmy jest wymagana.');
-        if (!nip) errs.push('NIP jest wymagany.');
-        else if (!isValidNip(nip)) errs.push('NIP jest nieprawidłowy.');
         if (!seller.address.trim()) errs.push('Adres jest wymagany.');
 
         setErrors(errs);
         if (errs.length) return;
 
-        saveSeller({ ...seller, nip });
+        saveSeller(seller);
         saveSettings(settings);
         setInfo('Zapisano ustawienia.');
         setTimeout(() => setInfo(null), 1600);
     }
 
-    // Eksport kopii (typy jawne)
     function exportBackup() {
         const snapshot: Record<string, string | null> = {};
         for (let i = 0; i < localStorage.length; i++) {
@@ -61,7 +56,6 @@ export default function Settings() {
         URL.revokeObjectURL(url);
     }
 
-    // Import kopii (bez any)
     function importBackup(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -89,7 +83,6 @@ export default function Settings() {
                 } else if (v === null) {
                     localStorage.removeItem(k);
                 }
-                // inne typy pomijamy
             }
             setInfo('Zaimportowano kopię. Odśwież stronę.');
             setTimeout(() => setInfo(null), 2000);
@@ -138,16 +131,32 @@ export default function Settings() {
                     {/* Profil firmy */}
                     <div className="card">
                         <h3>Profil firmy (Sprzedawca)</h3>
-                        <div>
-                            <label>Nazwa
-                                <input type="text" value={seller.name} onChange={(e) => setSeller((s) => ({ ...s, name: e.target.value }))} />
-                            </label>
-                        </div>
-                        <label>Adres
-                            <input type="text" value={seller.address} onChange={(e) => setSeller((s) => ({ ...s, address: e.target.value }))} />
+                        <p className="hint" style={{ marginBottom: '16px', color: '#6b7280' }}>
+                            💡 NIP sprzedawcy jest automatycznie pobierany z sesji KSeF podczas logowania.
+                        </p>
+                        <label>Nazwa firmy *
+                            <input
+                                type="text"
+                                value={seller.name}
+                                onChange={(e) => setSeller((s) => ({ ...s, name: e.target.value }))}
+                                placeholder="Nazwa Twojej firmy"
+                            />
+                        </label>
+                        <label>Adres *
+                            <input
+                                type="text"
+                                value={seller.address}
+                                onChange={(e) => setSeller((s) => ({ ...s, address: e.target.value }))}
+                                placeholder="Ulica, numer, kod pocztowy, miasto"
+                            />
                         </label>
                         <label>Rachunek bankowy (opcjonalnie)
-                            <input type="text" value={seller.bankAccount || ''} onChange={(e) => setSeller((s) => ({ ...s, bankAccount: e.target.value }))} placeholder="PL.. lub 26 cyfr" />
+                            <input
+                                type="text"
+                                value={seller.bankAccount || ''}
+                                onChange={(e) => setSeller((s) => ({ ...s, bankAccount: e.target.value }))}
+                                placeholder="PL00 0000 0000 0000 0000 0000 0000"
+                            />
                         </label>
                     </div>
 

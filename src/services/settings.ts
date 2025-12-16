@@ -8,11 +8,11 @@ export interface AppSettings {
         paymentMethodDefault: PaymentMethod;
         mppDefault: boolean;
         currencyDefault: 'PLN';
-        numberingPattern: string; // np. "FV/{YYYY}/{MM}/{seq3}"
+        numberingPattern: string;
     };
     print: {
-        marginMm: number; // margines @page
-        scale: number;    // 1=100%
+        marginMm: number;
+        scale: number;
         showBankOnPrint: boolean;
     };
 }
@@ -20,9 +20,9 @@ export interface AppSettings {
 const SETTINGS_KEY = 'app:settings';
 export const SELLER_KEY = 'sellerParty';
 
+// NIP usunięty - pobierany z sesji KSeF
 export interface SellerProfile {
     name: string;
-    nip: string;
     address: string;
     bankAccount?: string;
 }
@@ -62,16 +62,15 @@ export function saveSettings(s: AppSettings) {
 export function getSeller(): SellerProfile {
     try {
         const raw = localStorage.getItem(SELLER_KEY);
-        if (!raw) return { name: '', nip: '', address: '', bankAccount: '' };
+        if (!raw) return { name: '', address: '', bankAccount: '' };
         const obj = JSON.parse(raw);
         return {
             name: obj.name || '',
-            nip: obj.nip || '',
             address: obj.address || '',
             bankAccount: obj.bankAccount || '',
         };
     } catch {
-        return { name: '', nip: '', address: '', bankAccount: '' };
+        return { name: '', address: '', bankAccount: '' };
     }
 }
 

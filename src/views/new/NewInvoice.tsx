@@ -13,9 +13,11 @@ import { calcLine, type VatRate } from '../../helpers/vat';
 import SideNav from '../../components/layout/SideNav';
 import { useAuth } from '../../context/AuthContext';
 import { sendInvoice, openSession, closeSession, type CreateInvoiceRequest } from '../../services/ksefApi';
+import { getSeller, getSettings } from '../../services/settings';
 
 // Klucz do przechowywania wysłanych faktur
 const SENT_INVOICES_KEY = 'sentInvoices';
+const DRAFT_KEY = 'invoiceDraft';
 
 interface SentInvoiceRecord {
     invoiceNumber: string;
@@ -65,9 +67,6 @@ export interface InvoiceDraft {
     notes?: string;
 }
 
-const DRAFT_KEY = 'invoiceDraft';
-const SELLER_KEY = 'sellerParty';
-
 function today(): string {
     const d = new Date();
     return d.toISOString().slice(0, 10);
@@ -79,30 +78,59 @@ function addDays(dateIso: string, days: number): string {
     return d.toISOString().slice(0, 10);
 }
 
-function suggestNumber(): string {
+/**
+ * Generuje numer faktury na podstawie wzorca z ustawień
+ */
+function generateInvoiceNumber(pattern: string): string {
     const d = new Date();
-    const yyyy = d.getFullYear();
+    const yyyy = d.getFullYear().toString();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `FV/${yyyy}/${mm}/001`;
+    const dd = String(d.getDate()).padStart(2, '0');
+
+    // Pobierz ostatni numer sekwencji z localStorage
+    const seqKey = `invoiceSeq:${yyyy}:${mm}`;
+    const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10);
+    const nextSeq = lastSeq + 1;
+
+    let result = pattern
+        .replace('{YYYY}', yyyy)
+        .replace('{YY}', yyyy.slice(-2))
+        .replace('{MM}', mm)
+        .replace('{DD}', dd)
+        .replace('{seq}', nextSeq.toString())
+        .replace('{seq2}', nextSeq.toString().padStart(2, '0'))
+        .replace('{seq3}', nextSeq.toString().padStart(3, '0'))
+        .replace('{seq4}', nextSeq.toString().padStart(4, '0'));
+
+    return result;
+}
+
+/**
+ * Zapisuje użyty numer sekwencji (wywoływane po wysłaniu faktury)
+ */
+function incrementInvoiceSequence(): void {
+    const d = new Date();
+    const yyyy = d.getFullYear().toString();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const seqKey = `invoiceSeq:${yyyy}:${mm}`;
+    const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10);
+    localStorage.setItem(seqKey, (lastSeq + 1).toString());
 }
 
 const emptyParty: Party = { name: '', nip: '', address: '', bankAccount: '' };
 const emptyLine: InvoiceLineDraft = { name: '', qty: 1, unit: 'szt.', priceNet: 0, vatRate: 23, pkwiu: '', discount: 0 };
 
-function loadSellerFromStorage(sessionNip?: string | null): Party {
-    try {
-        const raw = localStorage.getItem(SELLER_KEY);
-        if (raw) {
-            const obj = JSON.parse(raw);
-            return {
-                name: obj.name || '',
-                nip: sessionNip || sanitizeNip(obj.nip || ''),
-                address: obj.address || '',
-                bankAccount: obj.bankAccount || ''
-            };
-        }
-    } catch { /* ignore */ }
-    return { ...emptyParty, nip: sessionNip || '' };
+/**
+ * Ładuje dane sprzedawcy z ustawień, nadpisując NIP z sesji KSeF
+ */
+function loadSellerFromSettings(sessionNip?: string | null): Party {
+    const seller = getSeller();
+    return {
+        name: seller.name || '',
+        nip: sessionNip || sanitizeNip(seller.nip || ''),
+        address: seller.address || '',
+        bankAccount: seller.bankAccount || ''
+    };
 }
 
 function loadDraft(sessionNip?: string | null): InvoiceDraft | null {
@@ -128,30 +156,45 @@ export default function NewInvoice() {
     const mountedRef = useRef(false);
     const { nip: sessionNip, isAuthenticated } = useAuth();
 
+    // Pobierz ustawienia przy inicjalizacji
+    const appSettings = useMemo(() => getSettings(), []);
+
     const initial: InvoiceDraft = useMemo(() => {
+        // Sprawdź czy jest zapisany szkic
         const fromDraft = loadDraft(sessionNip);
         if (fromDraft) return fromDraft;
-        const seller = loadSellerFromStorage(sessionNip);
+
+        // Nowa faktura - użyj danych z ustawień
+        const seller = loadSellerFromSettings(sessionNip);
         const issue = today();
+        const settings = appSettings.invoicing;
+
         return {
-            number: suggestNumber(),
-            place: 'Warszawa',
+            number: generateInvoiceNumber(settings.numberingPattern),
+            place: settings.placeDefault,
             issueDate: issue,
             sellDate: issue,
-            currency: 'PLN',
+            currency: settings.currencyDefault,
             seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(issue, 14), bankAccount: seller.bankAccount, mpp: false },
+            payment: {
+                method: settings.paymentMethodDefault,
+                dueDays: settings.dueDaysDefault,
+                dueDate: addDays(issue, settings.dueDaysDefault),
+                bankAccount: seller.bankAccount,
+                mpp: settings.mppDefault
+            },
             notes: '',
         };
-    }, [sessionNip]);
+    }, [sessionNip, appSettings]);
 
     const [draft, setDraft] = useState<InvoiceDraft>(initial);
     const [errors, setErrors] = useState<string[]>([]);
     const [info, setInfo] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
 
+    // Synchronizuj NIP sprzedawcy z sesją gdy się zmieni
     useEffect(() => {
         if (sessionNip && draft.seller.nip !== sessionNip) {
             setDraft(prev => ({
@@ -161,21 +204,46 @@ export default function NewInvoice() {
         }
     }, [sessionNip, draft.seller.nip]);
 
+    // Synchronizuj dane sprzedawcy z ustawień (gdy nie ma jeszcze wpisanych danych)
+    useEffect(() => {
+        const sellerFromSettings = getSeller();
+        setDraft(prev => {
+            // Aktualizuj tylko puste pola
+            const updatedSeller = { ...prev.seller };
+            if (!prev.seller.name && sellerFromSettings.name) {
+                updatedSeller.name = sellerFromSettings.name;
+            }
+            if (!prev.seller.address && sellerFromSettings.address) {
+                updatedSeller.address = sellerFromSettings.address;
+            }
+            if (!prev.seller.bankAccount && sellerFromSettings.bankAccount) {
+                updatedSeller.bankAccount = sellerFromSettings.bankAccount;
+            }
+            // NIP zawsze z sesji
+            if (sessionNip) {
+                updatedSeller.nip = sessionNip;
+            }
+            return { ...prev, seller: updatedSeller };
+        });
+    }, [sessionNip]);
+
+    // Autosave every 1s after changes
     useEffect(() => {
         if (!mountedRef.current) { mountedRef.current = true; return; }
         const t = setTimeout(() => {
             try {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-                localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
             } catch { /* ignore */ }
         }, 1000);
         return () => clearTimeout(t);
     }, [draft]);
 
+    // Recompute due date when issueDate or dueDays changes
     useEffect(() => {
         setDraft(prev => ({ ...prev, payment: { ...prev.payment, dueDate: addDays(prev.issueDate, prev.payment.dueDays) } }));
     }, [draft.issueDate, draft.payment.dueDays]);
 
+    // Enforce MPP -> przelew
     useEffect(() => {
         setDraft(prev => prev.payment.mpp && prev.payment.method !== 'przelew'
             ? { ...prev, payment: { ...prev.payment, method: 'przelew' } }
@@ -224,9 +292,9 @@ export default function NewInvoice() {
         if (draft.currency !== 'PLN') errs.push('Waluta musi być PLN.');
         if (!isValidNip(draft.seller.nip)) errs.push('NIP sprzedawcy jest nieprawidłowy (10 cyfr + suma kontrolna).');
         if (!isValidNip(draft.buyer.nip)) errs.push('NIP nabywcy jest nieprawidłowy (10 cyfr + suma kontrolna).');
-        if (!draft.seller.name) errs.push('Nazwa sprzedawcy jest wymagana.');
+        if (!draft.seller.name) errs.push('Nazwa sprzedawcy jest wymagana. Uzupełnij w Ustawieniach.');
         if (!draft.buyer.name) errs.push('Nazwa nabywcy jest wymagana.');
-        if (!draft.seller.address) errs.push('Adres sprzedawcy jest wymagany.');
+        if (!draft.seller.address) errs.push('Adres sprzedawcy jest wymagany. Uzupełnij w Ustawieniach.');
         if (!draft.buyer.address) errs.push('Adres nabywcy jest wymagany.');
         if (!draft.lines.length) errs.push('Dodaj co najmniej jedną pozycję.');
         draft.lines.forEach((l, idx) => {
@@ -262,7 +330,6 @@ export default function NewInvoice() {
     function saveDraft() {
         try {
             localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-            localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
             setInfo('Szkic zapisany lokalnie.');
             setTimeout(() => setInfo(null), 2000);
         } catch { /* ignore */ }
@@ -270,17 +337,24 @@ export default function NewInvoice() {
 
     function clearForm() {
         localStorage.removeItem(DRAFT_KEY);
-        const seller = loadSellerFromStorage(sessionNip);
+        const seller = loadSellerFromSettings(sessionNip);
+        const settings = appSettings.invoicing;
         setDraft({
-            number: suggestNumber(),
-            place: 'Warszawa',
+            number: generateInvoiceNumber(settings.numberingPattern),
+            place: settings.placeDefault,
             issueDate: today(),
             sellDate: today(),
-            currency: 'PLN',
+            currency: settings.currencyDefault,
             seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(today(), 14), bankAccount: seller.bankAccount, mpp: false },
+            payment: {
+                method: settings.paymentMethodDefault,
+                dueDays: settings.dueDaysDefault,
+                dueDate: addDays(today(), settings.dueDaysDefault),
+                bankAccount: seller.bankAccount,
+                mpp: settings.mppDefault
+            },
             notes: '',
         });
         setErrors([]);
@@ -349,6 +423,7 @@ export default function NewInvoice() {
                 throw new Error(sendResponse.error || 'Nie udało się wysłać faktury');
             }
 
+            // Zapisz wysłaną fakturę
             saveSentInvoice({
                 invoiceNumber: draft.number,
                 elementReferenceNumber: sendResponse.data?.elementReferenceNumber || '',
@@ -359,13 +434,16 @@ export default function NewInvoice() {
                 grossAmount: totals.gross,
             });
 
+            // Inkrementuj numer sekwencji po udanym wysłaniu
+            incrementInvoiceSequence();
+
             await closeSession();
 
             const refNumber = sendResponse.data?.elementReferenceNumber;
             setInfo(`✅ Faktura wysłana do KSeF! Numer referencyjny: ${refNumber || 'brak'}`);
 
             setTimeout(() => {
-                if (window.confirm('Faktura została wysłana. Czy chcesz wyczyścić formularz?')) {
+                if (window.confirm('Faktura została wysłana. Czy chcesz wyczyścić formularz i przygotować nową fakturę?')) {
                     clearForm();
                 }
             }, 1500);
@@ -379,6 +457,9 @@ export default function NewInvoice() {
             setIsSending(false);
         }
     }
+
+    // Sprawdź czy dane sprzedawcy są uzupełnione
+    const sellerIncomplete = !draft.seller.name || !draft.seller.address;
 
     const errorBlock = errors.length > 0 ? (
         <div className="error-message" style={{ marginBottom: 12 }}>
@@ -430,6 +511,19 @@ export default function NewInvoice() {
                         </div>
                     )}
 
+                    {sellerIncomplete && (
+                        <div className="warning-banner" style={{
+                            padding: '12px',
+                            marginBottom: '12px',
+                            backgroundColor: '#fff3cd',
+                            borderRadius: '4px',
+                            color: '#856404',
+                            border: '1px solid #ffc107'
+                        }}>
+                            ⚠️ Dane sprzedawcy są niekompletne. <a href="/settings" style={{ color: '#856404', fontWeight: 600 }}>Uzupełnij w Ustawieniach →</a>
+                        </div>
+                    )}
+
                     {info ? <div className="info-banner" style={{
                         padding: '12px',
                         marginBottom: '12px',
@@ -447,7 +541,6 @@ export default function NewInvoice() {
                             </label>
                             <label>Numer
                                 <input type="text" value={draft.number} onChange={(e) => setDraft(prev => ({ ...prev, number: e.target.value }))} />
-                                <div className="hint">Sugestia: <button className="link" onClick={(e) => { e.preventDefault(); setDraft(prev => ({ ...prev, number: suggestNumber() })); }}>Użyj sugestii</button></div>
                             </label>
                             <label>Miejsce wystawienia
                                 <input type="text" value={draft.place} onChange={(e) => setDraft(prev => ({ ...prev, place: e.target.value }))} />
@@ -481,7 +574,6 @@ export default function NewInvoice() {
                                 </span>
                             </div>
 
-                            {/* Pozostałe pola sprzedawcy - używamy tego samego stylu co reszta formularza */}
                             <label>
                                 Nazwa firmy *
                                 <input
@@ -491,7 +583,7 @@ export default function NewInvoice() {
                                         ...prev,
                                         seller: { ...prev.seller, name: e.target.value }
                                     }))}
-                                    placeholder="Nazwa sprzedawcy"
+                                    placeholder="Uzupełnij w Ustawieniach"
                                 />
                             </label>
 
@@ -504,7 +596,7 @@ export default function NewInvoice() {
                                         ...prev,
                                         seller: { ...prev.seller, address: e.target.value }
                                     }))}
-                                    placeholder="Ulica, numer, kod pocztowy, miasto"
+                                    placeholder="Uzupełnij w Ustawieniach"
                                 />
                             </label>
 
@@ -628,7 +720,6 @@ export default function NewInvoice() {
                             </table>
                         </div>
 
-                        {/* Pasek sumaryczny */}
                         <div className="summary-bar">
                             <span>Netto: <strong>{formatPLN(totals.net)}</strong></span>
                             <span>VAT: <strong>{formatPLN(totals.vat)}</strong></span>
