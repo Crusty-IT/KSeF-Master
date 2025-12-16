@@ -25,7 +25,7 @@ export default function SideNav() {
                 aria-label="Ikona KSeF Master"
             >
                 <img
-                    src="/ico.svg"
+                    src="https://github.com/Crusty-IT/KSeF-Master/blob/main/public/ico.svg"
                     alt="Ikona"
                     className="brand-icon"
                 />
@@ -107,7 +107,7 @@ export default function SideNav() {
     © 2025 KSeF Master
     <span className="footer-icon-wrapper" aria-hidden="true">
         <img
-            src="/ico.svg"
+            src="https://github.com/Crusty-IT/KSeF-Master/blob/main/public/ico.svg"
             alt=""
             className="footer-icon"
         />
