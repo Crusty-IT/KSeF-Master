@@ -128,6 +128,7 @@ label.checkbox input[type="checkbox"] {
 .invoice-lines-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto;
 }
 
 .invoice-lines-table th {
@@ -143,10 +144,11 @@ label.checkbox input[type="checkbox"] {
 
 .invoice-lines-table th.text-right {
     text-align: right;
+    padding-right: 16px;
 }
 
 .invoice-lines-table td {
-    padding: 8px 6px;
+    padding: 10px 8px;
     vertical-align: middle;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -174,14 +176,17 @@ label.checkbox input[type="checkbox"] {
     min-width: 180px;
 }
 
-.invoice-lines-table .text-right {
+/* NAPRAWIONE: Wyrównanie wartości w kolumnach Netto, VAT, Brutto */
+.invoice-lines-table td.text-right {
     text-align: right;
     font-weight: 600;
     white-space: nowrap;
-    padding-right: 12px;
+    padding-right: 16px;
     color: var(--text, #e6e9ef);
     font-family: 'Monaco', 'Consolas', monospace;
-    font-size: 13px;
+    font-size: 14px;
+    vertical-align: middle;
+    min-width: 100px;
 }
 
 .invoice-lines-table tfoot td {
