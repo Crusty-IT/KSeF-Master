@@ -585,24 +585,24 @@ export default function NewInvoice() {
                         </div>
                     </div>
 
-                    {/* Pozycje faktury */}
+                    {/* Pozycje faktury - NAPRAWIONA STRUKTURA TABELI */}
                     <div className="card">
                         <h3>Pozycje faktury</h3>
                         <div className="table-wrap">
-                            <table className="data-table invoice-lines-table">
+                            <table className="invoice-lines-table">
                                 <thead>
                                 <tr>
-                                    <th>Nazwa towaru/usługi</th>
-                                    <th>PKWiU</th>
-                                    <th>Ilość</th>
-                                    <th>J.m.</th>
-                                    <th>Cena netto</th>
-                                    <th>VAT</th>
-                                    <th>Rabat %</th>
-                                    <th className="text-right">Netto</th>
-                                    <th className="text-right">VAT</th>
-                                    <th className="text-right">Brutto</th>
-                                    <th></th>
+                                    <th style={{width: '25%'}}>Nazwa towaru/usługi</th>
+                                    <th style={{width: '8%'}}>PKWiU</th>
+                                    <th style={{width: '6%'}}>Ilość</th>
+                                    <th style={{width: '6%'}}>J.m.</th>
+                                    <th style={{width: '10%'}}>Cena netto</th>
+                                    <th style={{width: '8%'}}>VAT</th>
+                                    <th style={{width: '7%'}}>Rabat %</th>
+                                    <th className="text-right" style={{width: '10%'}}>Netto</th>
+                                    <th className="text-right" style={{width: '10%'}}>VAT</th>
+                                    <th className="text-right" style={{width: '10%'}}>Brutto</th>
+                                    <th style={{width: '5%'}}></th>
                                 </tr>
                                 </thead>
                                 <tbody>

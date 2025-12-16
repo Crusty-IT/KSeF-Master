@@ -128,7 +128,7 @@ label.checkbox input[type="checkbox"] {
 .invoice-lines-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto;
+    table-layout: fixed;
 }
 
 .invoice-lines-table th {
@@ -140,15 +140,16 @@ label.checkbox input[type="checkbox"] {
     background: #0f141b;
     border-bottom: 1px solid var(--border, #1f2733);
     white-space: nowrap;
+    vertical-align: middle;
 }
 
 .invoice-lines-table th.text-right {
     text-align: right;
-    padding-right: 16px;
+    padding-right: 12px;
 }
 
 .invoice-lines-table td {
-    padding: 10px 8px;
+    padding: 8px;
     vertical-align: middle;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -156,13 +157,13 @@ label.checkbox input[type="checkbox"] {
 .invoice-lines-table td input,
 .invoice-lines-table td select {
     width: 100%;
-    min-width: 60px;
     background: #0a0d11;
     border: 1px solid var(--border, #1f2733);
     color: var(--text, #e6e9ef);
     padding: 8px 10px;
     border-radius: 6px;
     font-size: 13px;
+    box-sizing: border-box;
 }
 
 .invoice-lines-table td input:focus,
@@ -172,21 +173,16 @@ label.checkbox input[type="checkbox"] {
     background: #0f141b;
 }
 
-.invoice-lines-table td:first-child input {
-    min-width: 180px;
-}
-
-/* NAPRAWIONE: Wyrównanie wartości w kolumnach Netto, VAT, Brutto */
+/* NAPRAWIONE: Kolumny z wartościami po prawej - bez inputów! */
 .invoice-lines-table td.text-right {
     text-align: right;
     font-weight: 600;
     white-space: nowrap;
-    padding-right: 16px;
+    padding: 8px 12px 8px 8px;
     color: var(--text, #e6e9ef);
     font-family: 'Monaco', 'Consolas', monospace;
-    font-size: 14px;
+    font-size: 13px;
     vertical-align: middle;
-    min-width: 100px;
 }
 
 .invoice-lines-table tfoot td {
@@ -204,6 +200,9 @@ label.checkbox input[type="checkbox"] {
     font-size: 14px;
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .invoice-lines-table .btn-light.small.danger:hover {
