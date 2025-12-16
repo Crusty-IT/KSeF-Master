@@ -14,8 +14,8 @@ import { calcLine, type VatRate } from '../../helpers/vat';
 import SideNav from '../../components/layout/SideNav';
 import { useAuth } from '../../context/AuthContext';
 import { sendInvoice, openSession, closeSession, type CreateInvoiceRequest } from '../../services/ksefApi';
+import { getSeller } from '../../services/settings';
 
-// Klucz do przechowywania wysłanych faktur
 const SENT_INVOICES_KEY = 'sentInvoices';
 
 interface SentInvoiceRecord {
@@ -38,7 +38,6 @@ function saveSentInvoice(record: SentInvoiceRecord) {
     } catch { /* ignore */ }
 }
 
-// ===== Types =====
 export type { VatRate } from '../../helpers/vat';
 
 export interface InvoiceLineDraft {
@@ -92,6 +91,16 @@ const emptyLine: InvoiceLineDraft = { name: '', qty: 1, unit: 'szt.', priceNet: 
 
 function loadSellerFromStorage(sessionNip?: string | null): Party {
     try {
+        const sellerProfile = getSeller();
+        if (sellerProfile.name || sellerProfile.address) {
+            return {
+                name: sellerProfile.name || '',
+                nip: sessionNip || '',
+                address: sellerProfile.address || '',
+                bankAccount: sellerProfile.bankAccount || ''
+            };
+        }
+
         const raw = localStorage.getItem(SELLER_KEY);
         if (raw) {
             const obj = JSON.parse(raw);
@@ -125,9 +134,6 @@ function mapVatRateToKsef(vatRate: VatRate): string {
     return vatRate.toLowerCase();
 }
 
-/**
- * Walidacja numeru konta bankowego (26 cyfr dla polskiego IBAN)
- */
 function isValidBankAccount(account: string | undefined): boolean {
     if (!account) return false;
     const digits = account.replace(/[^0-9]/g, '');
@@ -152,7 +158,13 @@ export default function NewInvoice() {
             seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(issue, 14), bankAccount: seller.bankAccount, mpp: false },
+            payment: {
+                method: 'przelew',
+                dueDays: 14,
+                dueDate: addDays(issue, 14),
+                bankAccount: seller.bankAccount,
+                mpp: false
+            },
             notes: '',
         };
     }, [sessionNip]);
@@ -170,6 +182,15 @@ export default function NewInvoice() {
             }));
         }
     }, [sessionNip, draft.seller.nip]);
+
+    useEffect(() => {
+        if (draft.seller.bankAccount && !draft.payment.bankAccount) {
+            setDraft(prev => ({
+                ...prev,
+                payment: { ...prev.payment, bankAccount: prev.seller.bankAccount }
+            }));
+        }
+    }, [draft.seller.bankAccount, draft.payment.bankAccount]);
 
     useEffect(() => {
         if (!mountedRef.current) { mountedRef.current = true; return; }
@@ -230,23 +251,19 @@ export default function NewInvoice() {
     function validate(): string[] {
         const errs: string[] = [];
 
-        // Dane dokumentu
         if (!draft.number.trim()) errs.push('Numer faktury jest wymagany.');
         if (!draft.issueDate) errs.push('Data wystawienia jest wymagana.');
         if (!draft.sellDate) errs.push('Data sprzedaży jest wymagana.');
         if (draft.currency !== 'PLN') errs.push('Waluta musi być PLN.');
 
-        // Sprzedawca
         if (!isValidNip(draft.seller.nip)) errs.push('NIP sprzedawcy jest nieprawidłowy (10 cyfr + suma kontrolna).');
         if (!draft.seller.name.trim()) errs.push('Nazwa sprzedawcy jest wymagana.');
         if (!draft.seller.address.trim()) errs.push('Adres sprzedawcy jest wymagany.');
 
-        // Nabywca
         if (!isValidNip(draft.buyer.nip)) errs.push('NIP nabywcy jest nieprawidłowy (10 cyfr + suma kontrolna).');
         if (!draft.buyer.name.trim()) errs.push('Nazwa nabywcy jest wymagana.');
         if (!draft.buyer.address.trim()) errs.push('Adres nabywcy jest wymagany.');
 
-        // Pozycje
         if (!draft.lines.length) errs.push('Dodaj co najmniej jedną pozycję.');
         draft.lines.forEach((l, idx) => {
             if (!l.name.trim()) errs.push(`Pozycja #${idx + 1}: nazwa jest wymagana.`);
@@ -254,7 +271,6 @@ export default function NewInvoice() {
             if (!(l.priceNet > 0)) errs.push(`Pozycja #${idx + 1}: cena netto musi być dodatnia.`);
         });
 
-        // Sumy
         const sumNet = totals.net;
         const sumVat = totals.vat;
         const sumGross = totals.gross;
@@ -262,7 +278,6 @@ export default function NewInvoice() {
             errs.push('Suma kontrolna nie zgadza się: netto + VAT musi równać się brutto.');
         }
 
-        // Płatność
         if (draft.payment.mpp && draft.payment.method !== 'przelew') {
             errs.push('Dla MPP metoda płatności musi być przelew.');
         }
@@ -314,10 +329,25 @@ export default function NewInvoice() {
             seller,
             buyer: { ...emptyParty },
             lines: [{ ...emptyLine }],
-            payment: { method: 'przelew', dueDays: 14, dueDate: addDays(today(), 14), bankAccount: seller.bankAccount, mpp: false },
+            payment: {
+                method: 'przelew',
+                dueDays: 14,
+                dueDate: addDays(today(), 14),
+                bankAccount: seller.bankAccount,
+                mpp: false
+            },
             notes: '',
         });
         setErrors([]);
+    }
+
+    function copyBankFromSeller() {
+        if (draft.seller.bankAccount) {
+            setDraft(prev => ({
+                ...prev,
+                payment: { ...prev.payment, bankAccount: prev.seller.bankAccount }
+            }));
+        }
     }
 
     function handlePrint() {
@@ -379,19 +409,17 @@ export default function NewInvoice() {
 
             const sendResponse = await sendInvoice(invoiceRequest);
 
-            // Debug - loguj odpowiedź
             console.log('Odpowiedź z KSeF:', JSON.stringify(sendResponse, null, 2));
 
             if (!sendResponse.success) {
                 throw new Error(sendResponse.error || 'Nie udało się wysłać faktury');
             }
 
-            // Pobierz numer referencyjny z różnych możliwych lokalizacji
             const refNumber = sendResponse.data?.elementReferenceNumber || null;
 
             saveSentInvoice({
                 invoiceNumber: draft.number,
-                elementReferenceNumber: refNumber?.toString() || 'oczekuje',
+                elementReferenceNumber: refNumber || 'oczekuje',
                 sentAt: new Date().toISOString(),
                 sellerNip: draft.seller.nip,
                 buyerNip: draft.buyer.nip,
@@ -461,28 +489,19 @@ export default function NewInvoice() {
                     </div>
 
                     {!isAuthenticated && (
-                        <div className="warning-banner" style={{
-                            padding: '12px',
-                            marginBottom: '12px',
-                            backgroundColor: '#fff3cd',
-                            borderRadius: '4px',
-                            color: '#856404',
-                            border: '1px solid #ffc107'
-                        }}>
+                        <div className="warning-banner">
                             ⚠️ Nie jesteś zalogowany do KSeF. Aby wysłać fakturę, najpierw się zaloguj.
                         </div>
                     )}
 
-                    {info ? <div className="info-banner" style={{
-                        padding: '12px',
-                        marginBottom: '12px',
-                        backgroundColor: info.startsWith('✅') ? '#d4edda' : '#cce5ff',
-                        borderRadius: '4px',
-                        color: info.startsWith('✅') ? '#155724' : '#004085'
-                    }}>{info}</div> : null}
+                    {info && (
+                        <div className={`info-banner ${info.startsWith('✅') ? 'success' : ''}`}>
+                            {info}
+                        </div>
+                    )}
                     {errorBlock}
 
-                    {/* Krok 1: Dane dokumentu */}
+                    {/* Dane dokumentu */}
                     <div className="card">
                         <div className="field-row">
                             <label>Typ dokumentu
@@ -490,7 +509,6 @@ export default function NewInvoice() {
                             </label>
                             <label>Numer
                                 <input type="text" value={draft.number} onChange={(e) => setDraft(prev => ({ ...prev, number: e.target.value }))} />
-                                <div className="hint">Sugestia: <button className="link" onClick={(e) => { e.preventDefault(); setDraft(prev => ({ ...prev, number: suggestNumber() })); }}>Użyj sugestii</button></div>
                             </label>
                             <label>Miejsce wystawienia
                                 <input type="text" value={draft.place} onChange={(e) => setDraft(prev => ({ ...prev, place: e.target.value }))} />
@@ -511,12 +529,11 @@ export default function NewInvoice() {
                         </div>
                     </div>
 
-                    {/* Krok 2: Strony */}
+                    {/* Strony */}
                     <div className="two-col">
                         <div className="card">
                             <h3>Sprzedawca</h3>
 
-                            {/* NIP sprzedawcy - zablokowany, pobierany z sesji */}
                             <div className="seller-nip-box">
                                 <span className="seller-nip-label">NIP Sprzedawcy (z sesji KSeF)</span>
                                 <span className="seller-nip-value">
@@ -550,14 +567,16 @@ export default function NewInvoice() {
                                 />
                             </label>
 
-                            <BankAccountInput
-                                label="Rachunek bankowy"
-                                value={draft.seller.bankAccount || ''}
-                                onChange={(v) => setDraft(prev => ({
-                                    ...prev,
-                                    seller: { ...prev.seller, bankAccount: v }
-                                }))}
-                            />
+                            <div style={{ marginTop: '12px' }}>
+                                <BankAccountInput
+                                    label="Rachunek bankowy"
+                                    value={draft.seller.bankAccount || ''}
+                                    onChange={(v) => setDraft(prev => ({
+                                        ...prev,
+                                        seller: { ...prev.seller, bankAccount: v }
+                                    }))}
+                                />
+                            </div>
                         </div>
 
                         <div className="card">
@@ -566,7 +585,7 @@ export default function NewInvoice() {
                         </div>
                     </div>
 
-                    {/* Krok 3: Pozycje faktury */}
+                    {/* Pozycje faktury */}
                     <div className="card">
                         <h3>Pozycje faktury</h3>
                         <div className="table-wrap">
@@ -580,9 +599,9 @@ export default function NewInvoice() {
                                     <th>Cena netto</th>
                                     <th>VAT</th>
                                     <th>Rabat %</th>
-                                    <th>Netto</th>
-                                    <th>VAT</th>
-                                    <th>Brutto</th>
+                                    <th className="text-right">Netto</th>
+                                    <th className="text-right">VAT</th>
+                                    <th className="text-right">Brutto</th>
                                     <th></th>
                                 </tr>
                                 </thead>
@@ -673,7 +692,7 @@ export default function NewInvoice() {
                         </div>
                     </div>
 
-                    {/* Krok 4: Płatność */}
+                    {/* Płatność */}
                     <div className="card">
                         <h3>Płatność</h3>
                         <div className="field-row">
@@ -692,7 +711,7 @@ export default function NewInvoice() {
                         </div>
 
                         {draft.payment.method === 'przelew' && (
-                            <div style={{ marginTop: '12px' }}>
+                            <div className="bank-account-section">
                                 <BankAccountInput
                                     label="Rachunek bankowy do płatności"
                                     value={draft.payment.bankAccount || ''}
@@ -702,6 +721,15 @@ export default function NewInvoice() {
                                     }))}
                                     required
                                 />
+                                {draft.seller.bankAccount && draft.payment.bankAccount !== draft.seller.bankAccount && (
+                                    <button
+                                        type="button"
+                                        className="btn-link copy-bank-btn"
+                                        onClick={copyBankFromSeller}
+                                    >
+                                        📋 Użyj rachunku z profilu sprzedawcy
+                                    </button>
+                                )}
                             </div>
                         )}
 
@@ -731,7 +759,7 @@ export default function NewInvoice() {
                                 <div>{draft.seller.name}</div>
                                 <div>NIP: {draft.seller.nip}</div>
                                 <div>{draft.seller.address}</div>
-                                {draft.seller.bankAccount ? <div>Rachunek: {draft.seller.bankAccount}</div> : null}
+                                {draft.seller.bankAccount && <div>Rachunek: {draft.seller.bankAccount}</div>}
                             </div>
                             <div>
                                 <h3>Nabywca</h3>
@@ -787,8 +815,8 @@ export default function NewInvoice() {
 
                         <footer className="print-footer">
                             <div>Metoda płatności: {draft.payment.method} • Termin płatności: {draft.payment.dueDate} • Rachunek: {draft.payment.bankAccount || '-'}</div>
-                            {draft.payment.mpp ? <div><strong>MPP:</strong> Mechanizm Podzielonej Płatności</div> : null}
-                            {draft.notes ? <div>Uwagi: {draft.notes}</div> : null}
+                            {draft.payment.mpp && <div><strong>MPP:</strong> Mechanizm Podzielonej Płatności</div>}
+                            {draft.notes && <div>Uwagi: {draft.notes}</div>}
                         </footer>
                     </div>
                 </section>

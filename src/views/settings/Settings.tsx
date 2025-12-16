@@ -1,9 +1,10 @@
-/* src/views/settings/Settings.tsx */
+// src/views/settings/Settings.tsx
 import { useEffect, useState, type ChangeEvent } from 'react';
 import './Settings.css';
 import '../dashboard/Dashboard.css';
 import SideNav from '../../components/layout/SideNav';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
+import BankAccountInput from '../../components/form/BankAccountInput';
 import {
     getSettings,
     saveSettings,
@@ -25,12 +26,25 @@ export default function Settings() {
         setSeller(getSeller());
     }, []);
 
-    function saveAll() {
+    function validateForm(): string[] {
         const errs: string[] = [];
 
         if (!seller.name.trim()) errs.push('Nazwa firmy jest wymagana.');
         if (!seller.address.trim()) errs.push('Adres jest wymagany.');
 
+        // Walidacja numeru konta (opcjonalne, ale jeśli podane - musi być poprawne)
+        if (seller.bankAccount) {
+            const digits = seller.bankAccount.replace(/[^0-9]/g, '');
+            if (digits.length > 0 && digits.length !== 26) {
+                errs.push('Numer konta bankowego musi mieć 26 cyfr.');
+            }
+        }
+
+        return errs;
+    }
+
+    function saveAll() {
+        const errs = validateForm();
         setErrors(errs);
         if (errs.length) return;
 
@@ -150,14 +164,16 @@ export default function Settings() {
                                 placeholder="Ulica, numer, kod pocztowy, miasto"
                             />
                         </label>
-                        <label>Rachunek bankowy (opcjonalnie)
-                            <input
-                                type="text"
+                        <div style={{ marginTop: '12px' }}>
+                            <BankAccountInput
+                                label="Rachunek bankowy"
                                 value={seller.bankAccount || ''}
-                                onChange={(e) => setSeller((s) => ({ ...s, bankAccount: e.target.value }))}
-                                placeholder="PL00 0000 0000 0000 0000 0000 0000"
+                                onChange={(v) => setSeller((s) => ({ ...s, bankAccount: v }))}
                             />
-                        </label>
+                            <p className="hint" style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                                Ten numer będzie domyślnie używany na fakturach jako rachunek do płatności.
+                            </p>
+                        </div>
                     </div>
 
                     {/* Domyślne parametry faktur */}
