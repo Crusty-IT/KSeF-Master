@@ -145,13 +145,20 @@ label.checkbox input[type="checkbox"] {
 
 .invoice-lines-table th.text-right {
     text-align: right;
-    padding-right: 12px;
+    padding-right: 16px;
 }
 
 .invoice-lines-table td {
     padding: 8px;
-    vertical-align: middle;
+    vertical-align: top;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Wrapper komponentów formularza w tabeli */
+.invoice-lines-table td > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 .invoice-lines-table td input,
@@ -178,11 +185,12 @@ label.checkbox input[type="checkbox"] {
     text-align: right;
     font-weight: 600;
     white-space: nowrap;
-    padding: 8px 12px 8px 8px;
+    padding: 16px 16px 8px 8px;
     color: var(--text, #e6e9ef);
     font-family: 'Monaco', 'Consolas', monospace;
-    font-size: 13px;
-    vertical-align: middle;
+    font-size: 14px;
+    vertical-align: top;
+    letter-spacing: 0.3px;
 }
 
 .invoice-lines-table tfoot td {
