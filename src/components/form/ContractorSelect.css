@@ -1,0 +1,346 @@
+/* src/components/form/ContractorSelect.css */
+
+.contractor-select {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ===== Przycisk wyboru z listy ===== */
+.client-selector {
+    position: relative;
+}
+
+.btn-select-client {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(34, 211, 238, 0.05) 100%);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    border-radius: 10px;
+    color: var(--text, #e6e9ef);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-select-client:hover {
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.15) 0%, rgba(34, 211, 238, 0.08) 100%);
+    border-color: var(--accent, #22d3ee);
+}
+
+.btn-select-client .btn-icon {
+    font-size: 18px;
+}
+
+.btn-select-client .dropdown-arrow {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--muted, #a4a9b6);
+}
+
+/* ===== Dropdown klientów ===== */
+.client-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #0f141b;
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.dropdown-search {
+    padding: 12px;
+    border-bottom: 1px solid var(--border, #1f2733);
+}
+
+.dropdown-search input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0a0d11;
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 8px;
+    color: var(--text, #e6e9ef);
+    font-size: 14px;
+}
+
+.dropdown-search input:focus {
+    outline: none;
+    border-color: var(--accent, #22d3ee);
+}
+
+.dropdown-search input::placeholder {
+    color: var(--muted, #a4a9b6);
+}
+
+.dropdown-list {
+    overflow-y: auto;
+    max-height: 280px;
+}
+
+.dropdown-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--muted, #a4a9b6);
+    font-size: 14px;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.dropdown-item:hover {
+    background: rgba(34, 211, 238, 0.1);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item .item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #e6e9ef);
+    margin-bottom: 4px;
+}
+
+.dropdown-item .item-details {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted, #a4a9b6);
+}
+
+.dropdown-item .item-nip {
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.dropdown-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border, #1f2733);
+    background: #0a0d11;
+}
+
+.add-client-link {
+    color: var(--accent, #22d3ee);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.add-client-link:hover {
+    text-decoration: underline;
+}
+
+/* ===== Hint gdy brak klientów ===== */
+.no-clients-hint {
+    padding: 12px 16px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #fcd34d;
+}
+
+.no-clients-hint a {
+    color: var(--accent, #22d3ee);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.no-clients-hint a:hover {
+    text-decoration: underline;
+}
+
+/* ===== Divider ===== */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border, #1f2733);
+}
+
+.divider span {
+    font-size: 12px;
+    color: var(--muted, #a4a9b6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Wyszukiwanie NIP ===== */
+.nip-search-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.nip-field {
+    flex: 1;
+}
+
+.btn-use-nip {
+    padding: 10px 20px;
+    background: var(--accent, #22d3ee);
+    color: #0a0d11;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-use-nip:hover:not(:disabled) {
+    background: #60dff8;
+}
+
+.btn-use-nip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== Sugestie z API ===== */
+.api-suggestions {
+    padding: 12px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 8px;
+}
+
+.suggestion-hint {
+    font-size: 12px;
+    color: #86efac;
+    margin-bottom: 8px;
+}
+
+.suggestion-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.suggestion-item {
+    margin-bottom: 4px;
+}
+
+.suggestion-item:last-child {
+    margin-bottom: 0;
+}
+
+.suggestion-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.suggestion-btn:hover {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.suggestion-name {
+    font-size: 13px;
+    color: var(--text, #e6e9ef);
+    font-weight: 500;
+}
+
+.suggestion-nip {
+    font-size: 12px;
+    color: var(--muted, #a4a9b6);
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+/* ===== Pola formularza ===== */
+.contractor-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.contractor-fields .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.contractor-fields .label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted, #a4a9b6);
+}
+
+.contractor-fields .input {
+    padding: 10px 12px;
+    background: #0f141b;
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 8px;
+    color: var(--text, #e6e9ef);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.contractor-fields .input:focus {
+    outline: none;
+    border-color: var(--accent, #22d3ee);
+    background: #121722;
+}
+
+.contractor-fields .input::placeholder {
+    color: var(--muted, #a4a9b6);
+}
+
+.contractor-fields .input--error {
+    border-color: var(--danger, #ef4444);
+}
+
+.contractor-fields .error {
+    font-size: 12px;
+    color: var(--danger, #ef4444);
+}
+
+/* ===== Responsywność ===== */
+@media (max-width: 480px) {
+    .nip-search-row {
+        grid-template-columns: 1fr;
+    }
+
+    .dropdown-item .item-details {
+        flex-direction: column;
+        gap: 2px;
+    }
+}

@@ -1,0 +1,77 @@
+/* src/components/form/BankAccountInput.css */
+
+.bank-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bank-input-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted, #a4a9b6);
+}
+
+.bank-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.bank-input {
+    width: 100%;
+    padding: 10px 12px;
+    padding-right: 55px;
+    background: #0f141b;
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 8px;
+    color: var(--text, #e6e9ef);
+    font-size: 14px;
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+}
+
+.bank-input:focus {
+    outline: none;
+    border-color: var(--accent, #22d3ee);
+    background: #121722;
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+.bank-input::placeholder {
+    color: var(--muted, #a4a9b6);
+    opacity: 0.6;
+    letter-spacing: 0.5px;
+}
+
+.bank-input-container.has-error .bank-input {
+    border-color: var(--danger, #ef4444);
+}
+
+.bank-input-container.is-valid .bank-input {
+    border-color: #22c55e;
+}
+
+.bank-counter {
+    position: absolute;
+    right: 12px;
+    font-size: 11px;
+    font-family: 'Monaco', 'Consolas', monospace;
+    color: var(--muted, #a4a9b6);
+    pointer-events: none;
+}
+
+.bank-counter.complete {
+    color: #22c55e;
+}
+
+.bank-error {
+    font-size: 12px;
+    color: var(--danger, #ef4444);
+}
+
+.bank-valid {
+    font-size: 12px;
+    color: #22c55e;
+}

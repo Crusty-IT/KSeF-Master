@@ -29,5 +29,6 @@ dist-ssr
 
 # Dependencies
 /node_modules
+.env
 
 
