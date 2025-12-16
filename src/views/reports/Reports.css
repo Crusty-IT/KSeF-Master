@@ -1,43 +1,198 @@
-/* Pasek filtrów */
+/* src/views/reports/Reports.css */
+
+/* ===== Karty ===== */
+.card {
+    background: var(--panel, #151a22);
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text, #e6e9ef);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border, #1f2733);
+}
+
+/* ===== Pasek filtrów ===== */
 .reports-filters {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
     align-items: end;
+    margin-bottom: 20px;
 }
-.reports-filters label { display: flex; flex-direction: column; gap: 6px; }
 
-/* KPI */
+.reports-filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--muted, #a4a9b6);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.reports-filters input,
+.reports-filters select {
+    background: #0f141b;
+    color: var(--text, #e6e9ef);
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+}
+
+.reports-filters input:focus,
+.reports-filters select:focus {
+    outline: none;
+    border-color: var(--accent, #22d3ee);
+}
+
+/* ===== KPI Grid ===== */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin: 16px 0;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
 }
-.kpi-card { display: flex; flex-direction: column; gap: 6px; }
-.kpi-title { opacity: .8; font-size: .95rem; }
-.kpi-value { font-size: 1.4rem; font-weight: 700; }
 
-/* Sekcje tabelek */
+.kpi-card {
+    background: var(--panel, #151a22);
+    border: 1px solid var(--border, #1f2733);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kpi-title {
+    color: var(--muted, #a4a9b6);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text, #e6e9ef);
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.kpi-value.accent {
+    color: var(--accent, #22d3ee);
+}
+
+.kpi-value.success {
+    color: var(--success, #22c55e);
+}
+
+.kpi-value.danger {
+    color: var(--danger, #ef4444);
+}
+
+/* ===== Reports Grid ===== */
 .reports-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 20px;
 }
 
-/* Responsywność */
+.reports-grid .card {
+    margin-bottom: 0;
+}
+
+/* ===== Tabele w raportach ===== */
+.reports-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reports-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted, #a4a9b6);
+    background: #0f141b;
+    border-bottom: 1px solid var(--border, #1f2733);
+}
+
+.reports-table td {
+    padding: 10px 12px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.reports-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.reports-table .text-right {
+    text-align: right;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+/* ===== Responsywność ===== */
 @media (max-width: 1100px) {
-    .reports-filters { grid-template-columns: 1fr 1fr; }
-    .kpi-grid { grid-template-columns: 1fr 1fr; }
-    .reports-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-    .reports-filters { grid-template-columns: 1fr; }
-    .kpi-grid { grid-template-columns: 1fr; }
+    .reports-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .reports-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
-/* Druk – proste layouty jeden pod drugim */
+@media (max-width: 640px) {
+    .reports-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-value {
+        font-size: 24px;
+    }
+}
+
+/* ===== Druk ===== */
 @media print {
-    .reports-filters { display: none; }
-    .kpi-grid, .reports-grid { grid-template-columns: 1fr; gap: 8px; }
+    .reports-filters {
+        display: none;
+    }
+
+    .kpi-grid,
+    .reports-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .kpi-card,
+    .card {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        background: white;
+        color: black;
+    }
+
+    .kpi-title {
+        color: #666;
+    }
+
+    .kpi-value {
+        color: black;
+    }
 }
