@@ -1,4 +1,3 @@
-// src/services/ksefApi.ts
 import axios, { AxiosError } from 'axios';
 
 // ===== Konfiguracja =====
@@ -138,6 +137,11 @@ export interface CreateInvoiceRequest {
     }[];
     currency?: string;
     issuePlace?: string;
+    payment?: {
+        method: string;
+        dueDate?: string;
+        bankAccount?: string;
+    };
 }
 
 export interface SendInvoiceResponse {
@@ -317,7 +321,6 @@ export interface ContractorQueryParams {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function listContractors(_params?: ContractorQueryParams): Promise<Contractor[]> {
-    // Placeholder - w przyszłości można zintegrować z API GUS lub własną bazą
     return [];
 }
 

@@ -129,7 +129,7 @@ export default function Reports() {
                         </div>
 
                         <div className="card" style={{ gridColumn: '1 / -1' }}>
-                            <h3>Należności (Aging) — tylko wystawione</h3>
+                            <h3>Należności — tylko wystawione</h3>
                             <div className="table-wrap">
                                 <table className="data-table">
                                     <thead><tr><th>Bucket</th><th>Brutto</th></tr></thead>

@@ -1,4 +1,3 @@
-// src/views/new/NewInvoice.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './NewInvoice.css';
 import '../dashboard/Dashboard.css';
@@ -13,7 +12,7 @@ import { isValidNip, sanitizeNip } from '../../helpers/nip';
 import { calcLine, type VatRate } from '../../helpers/vat';
 import SideNav from '../../components/layout/SideNav';
 import { useAuth } from '../../context/AuthContext';
-import { sendInvoice, openSession, closeSession, type CreateInvoiceRequest } from '../../services/ksefApi';
+import { sendInvoice, type CreateInvoiceRequest } from '../../services/ksefApi';
 import { getSeller } from '../../services/settings';
 
 const SENT_INVOICES_KEY = 'sentInvoices';
@@ -61,8 +60,7 @@ export interface InvoiceDraft {
     seller: Party;
     buyer: Party;
     lines: InvoiceLineDraft[];
-    payment: { method: 'przelew' | 'gotówka'; dueDays: number; dueDate: string; bankAccount?: string; mpp: boolean; };
-    notes?: string;
+    payment: { method: 'przelew' | 'gotówka'; dueDays: number; dueDate: string; bankAccount?: string; };
 }
 
 const DRAFT_KEY = 'invoiceDraft';
@@ -163,9 +161,7 @@ export default function NewInvoice() {
                 dueDays: 14,
                 dueDate: addDays(issue, 14),
                 bankAccount: seller.bankAccount,
-                mpp: false
             },
-            notes: '',
         };
     }, [sessionNip]);
 
@@ -206,12 +202,6 @@ export default function NewInvoice() {
     useEffect(() => {
         setDraft(prev => ({ ...prev, payment: { ...prev.payment, dueDate: addDays(prev.issueDate, prev.payment.dueDays) } }));
     }, [draft.issueDate, draft.payment.dueDays]);
-
-    useEffect(() => {
-        setDraft(prev => prev.payment.mpp && prev.payment.method !== 'przelew'
-            ? { ...prev, payment: { ...prev.payment, method: 'przelew' } }
-            : prev);
-    }, [draft.payment.mpp]);
 
     const totals = useMemo(() => {
         let totalNet = 0;
@@ -278,9 +268,6 @@ export default function NewInvoice() {
             errs.push('Suma kontrolna nie zgadza się: netto + VAT musi równać się brutto.');
         }
 
-        if (draft.payment.mpp && draft.payment.method !== 'przelew') {
-            errs.push('Dla MPP metoda płatności musi być przelew.');
-        }
         if (draft.payment.method === 'przelew') {
             if (!draft.payment.bankAccount) {
                 errs.push('Dla przelewu wymagany jest rachunek bankowy.');
@@ -334,9 +321,7 @@ export default function NewInvoice() {
                 dueDays: 14,
                 dueDate: addDays(today(), 14),
                 bankAccount: seller.bankAccount,
-                mpp: false
             },
-            notes: '',
         });
         setErrors([]);
     }
@@ -370,16 +355,9 @@ export default function NewInvoice() {
         }
 
         setIsSending(true);
-        setInfo('Otwieranie sesji KSeF...');
+        setInfo('Wysyłanie faktury do KSeF...');
 
         try {
-            const sessionResponse = await openSession();
-            if (!sessionResponse.success) {
-                throw new Error(sessionResponse.error || 'Nie udało się otworzyć sesji KSeF');
-            }
-
-            setInfo('Wysyłanie faktury do KSeF...');
-
             const invoiceRequest: CreateInvoiceRequest = {
                 invoiceNumber: draft.number,
                 issueDate: draft.issueDate,
@@ -405,6 +383,11 @@ export default function NewInvoice() {
                 })),
                 currency: draft.currency,
                 issuePlace: draft.place,
+                payment: {
+                    method: draft.payment.method,
+                    dueDate: draft.payment.dueDate,
+                    bankAccount: draft.payment.bankAccount,
+                },
             };
 
             const sendResponse = await sendInvoice(invoiceRequest);
@@ -426,8 +409,6 @@ export default function NewInvoice() {
                 buyerName: draft.buyer.name,
                 grossAmount: totals.gross,
             });
-
-            await closeSession();
 
             if (refNumber) {
                 setInfo(`✅ Faktura wysłana do KSeF! Numer referencyjny: ${refNumber}`);
@@ -585,7 +566,7 @@ export default function NewInvoice() {
                         </div>
                     </div>
 
-                    {/* Pozycje faktury - NAPRAWIONA STRUKTURA TABELI */}
+                    {/* Pozycje faktury */}
                     <div className="card">
                         <h3>Pozycje faktury</h3>
                         <div className="table-wrap">
@@ -732,16 +713,6 @@ export default function NewInvoice() {
                                 )}
                             </div>
                         )}
-
-                        <label className="checkbox" style={{ marginTop: '16px' }}>
-                            <input type="checkbox" checked={draft.payment.mpp} onChange={(e) => setDraft(prev => ({ ...prev, payment: { ...prev.payment, mpp: e.target.checked } }))} />
-                            MPP (Mechanizm Podzielonej Płatności)
-                        </label>
-
-                        <label style={{ marginTop: '16px', display: 'block' }}>
-                            Uwagi do faktury
-                            <textarea value={draft.notes || ''} onChange={(e) => setDraft(prev => ({ ...prev, notes: e.target.value }))} rows={3} />
-                        </label>
                     </div>
                 </section>
 
@@ -815,8 +786,6 @@ export default function NewInvoice() {
 
                         <footer className="print-footer">
                             <div>Metoda płatności: {draft.payment.method} • Termin płatności: {draft.payment.dueDate} • Rachunek: {draft.payment.bankAccount || '-'}</div>
-                            {draft.payment.mpp && <div><strong>MPP:</strong> Mechanizm Podzielonej Płatności</div>}
-                            {draft.notes && <div>Uwagi: {draft.notes}</div>}
                         </footer>
                     </div>
                 </section>
