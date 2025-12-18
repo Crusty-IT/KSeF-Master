@@ -154,7 +154,6 @@ label.checkbox input[type="checkbox"] {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Wrapper komponentów formularza w tabeli */
 .invoice-lines-table td > div {
     display: flex;
     flex-direction: column;
@@ -180,7 +179,6 @@ label.checkbox input[type="checkbox"] {
     background: #0f141b;
 }
 
-/* NAPRAWIONE: Kolumny z wartościami po prawej - bez inputów! */
 .invoice-lines-table td.text-right {
     text-align: right;
     font-weight: 600;
@@ -319,105 +317,6 @@ label.checkbox input[type="checkbox"] {
     margin-bottom: 4px;
 }
 
-/* ===== Print Styles ===== */
-.print-only {
-    display: none;
-}
-
-@media print {
-    body * {
-        visibility: hidden;
-    }
-
-    .print-only,
-    .print-only * {
-        visibility: visible;
-    }
-
-    .print-only {
-        display: block;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
-
-    .side-nav,
-    .ops-section,
-    .dash-header,
-    .ops-header {
-        display: none !important;
-    }
-
-    .print-a4 {
-        width: 210mm;
-        padding: 15mm;
-        background: white;
-        color: black;
-        font-size: 12px;
-    }
-
-    .print-header h1 {
-        font-size: 20px;
-        margin-bottom: 8px;
-    }
-
-    .print-parties {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 40px;
-        margin: 24px 0;
-    }
-
-    .print-parties h3 {
-        font-size: 14px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 4px;
-    }
-
-    .print-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
-    }
-
-    .print-table th,
-    .print-table td {
-        border: 1px solid #ddd;
-        padding: 6px 8px;
-        text-align: left;
-        font-size: 11px;
-    }
-
-    .print-table th {
-        background: #f5f5f5;
-        font-weight: 600;
-    }
-
-    .print-totals {
-        margin-top: 24px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .print-totals .grand {
-        text-align: right;
-        font-size: 14px;
-    }
-
-    .print-totals .grand div {
-        margin-bottom: 4px;
-    }
-
-    .print-footer {
-        margin-top: 32px;
-        padding-top: 16px;
-        border-top: 1px solid #ccc;
-        font-size: 11px;
-    }
-}
-
 /* ===== Responsywność ===== */
 @media (max-width: 1200px) {
     .field-row {
@@ -468,5 +367,318 @@ label.checkbox input[type="checkbox"] {
 
     .ops-actions {
         flex-wrap: wrap;
+    }
+}
+
+/* ========== PRINT STYLES ========== */
+
+.print-only {
+    display: none !important;
+}
+
+@media print {
+    /* Usuń nagłówek i stopkę przeglądarki */
+    @page {
+        margin: 0;
+        size: A4;
+    }
+
+    /* Ukryj nawigację i formularz */
+    .side-nav,
+    .ops-section,
+    .dash-header,
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    .dash-root {
+        display: block !important;
+    }
+
+    .dash-main {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    html, body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm;
+        height: 297mm;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Kontener A4 - FLEXBOX dla stopki na dole */
+    .print-invoice {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        padding: 10mm 15mm;
+        background: white;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9pt;
+        color: #1a1a1a;
+        line-height: 1.3;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Wrapper dla treści (wszystko oprócz stopki) */
+    .print-content {
+        flex: 1;
+    }
+
+    /* Nagłówek */
+    .print-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #333;
+    }
+
+    .print-header-left h2 {
+        font-size: 11pt;
+        font-weight: bold;
+        margin: 0 0 2px 0;
+        color: #1a1a1a;
+    }
+
+    .print-header-left .ksef-label {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #dc0032;
+    }
+
+    .print-header-right {
+        text-align: right;
+    }
+
+    .print-header-right .invoice-number-label {
+        font-size: 8pt;
+        color: #666;
+        margin-bottom: 2px;
+    }
+
+    .print-header-right .invoice-number {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #1a1a1a;
+    }
+
+    .print-header-right .invoice-type {
+        font-size: 8pt;
+        color: #1a1a1a;
+        margin-top: 2px;
+    }
+
+    /* Linia pozioma */
+    .print-hr {
+        border: none;
+        border-top: 1px solid #ccc;
+        margin: 8px 0;
+    }
+
+    /* Strony - sprzedawca/nabywca */
+    .print-parties {
+        display: flex;
+        gap: 20px;
+        margin: 8px 0;
+    }
+
+    .print-party {
+        flex: 1;
+    }
+
+    .print-party h3 {
+        font-size: 10pt;
+        font-weight: bold;
+        margin: 0 0 6px 0;
+        color: #1a1a1a;
+    }
+
+    .print-party p {
+        margin: 2px 0;
+        font-size: 9pt;
+        color: #333;
+    }
+
+    .print-party .label {
+        font-size: 8pt;
+        font-weight: bold;
+        color: #666;
+        margin-top: 4px;
+    }
+
+    /* Szczegóły */
+    .print-details {
+        margin: 8px 0;
+    }
+
+    .print-details h3 {
+        font-size: 10pt;
+        font-weight: bold;
+        margin: 0 0 6px 0;
+    }
+
+    .print-details-row {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 3px;
+    }
+
+    .print-details-row span {
+        font-size: 9pt;
+    }
+
+    .print-details-row .label {
+        font-size: 8pt;
+        color: #666;
+    }
+
+    /* Tabela pozycji */
+    .print-items {
+        margin: 8px 0;
+    }
+
+    .print-items h3 {
+        font-size: 10pt;
+        font-weight: bold;
+        margin: 0 0 3px 0;
+    }
+
+    .print-items .subtitle {
+        font-size: 8pt;
+        color: #666;
+        margin-bottom: 6px;
+    }
+
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8pt;
+    }
+
+    .print-table th {
+        background: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        border: 1px solid #999;
+        padding: 5px 4px;
+        text-align: left;
+        font-weight: bold;
+        font-size: 8pt;
+    }
+
+    .print-table td {
+        border: 1px solid #999;
+        padding: 4px;
+        font-size: 8pt;
+    }
+
+    .print-table .text-right {
+        text-align: right;
+    }
+
+    .print-table tbody tr:nth-child(even) {
+        background: #fafafa !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Suma */
+    .print-total {
+        text-align: right;
+        margin: 10px 0;
+        font-size: 12pt;
+        font-weight: bold;
+    }
+
+    /* Podsumowanie VAT */
+    .print-vat-summary {
+        margin: 8px 0;
+    }
+
+    .print-vat-summary h3 {
+        font-size: 10pt;
+        font-weight: bold;
+        margin: 0 0 6px 0;
+    }
+
+    .print-vat-table {
+        border-collapse: collapse;
+        font-size: 8pt;
+    }
+
+    .print-vat-table th,
+    .print-vat-table td {
+        border: 1px solid #999;
+        padding: 4px 10px;
+    }
+
+    .print-vat-table th {
+        background: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        font-weight: bold;
+    }
+
+    .print-vat-table .text-right {
+        text-align: right;
+    }
+
+    /* Płatność */
+    .print-payment {
+        margin: 8px 0;
+    }
+
+    .print-payment h3 {
+        font-size: 10pt;
+        font-weight: bold;
+        margin: 0 0 6px 0;
+    }
+
+    .print-payment-row {
+        display: flex;
+        gap: 30px;
+        font-size: 9pt;
+    }
+
+    .print-payment .label {
+        font-size: 8pt;
+        color: #666;
+    }
+
+    /* STOPKA - zawsze na dole strony */
+    .print-footer {
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid #ccc;
+        text-align: center;
+    }
+
+    .print-footer p {
+        font-size: 8pt;
+        color: #666;
+        margin: 2px 0;
+    }
+
+    .print-footer .note {
+        margin-top: 6px;
+        font-style: italic;
+        font-size: 7pt;
+    }
+
+    .print-footer a {
+        color: #0066cc;
+        text-decoration: none;
     }
 }

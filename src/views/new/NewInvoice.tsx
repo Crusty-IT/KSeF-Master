@@ -25,6 +25,33 @@ interface SentInvoiceRecord {
     buyerNip: string;
     buyerName: string;
     grossAmount: number;
+    invoiceHash?: string;
+    issueDate?: string;
+    saleDate?: string;
+    issuePlace?: string;
+    sellerName?: string;
+    sellerAddress?: string;
+    sellerBankAccount?: string;
+    buyerAddress?: string;
+    items?: {
+        name: string;
+        unit: string;
+        quantity: number;
+        unitPriceNet: number;
+        vatRate: string;
+        netValue: number;
+        vatValue: number;
+        grossValue: number;
+    }[];
+    totals?: {
+        net: number;
+        vat: number;
+        gross: number;
+        perRate?: Record<string, { net: number; vat: number; gross: number }>;
+    };
+    paymentMethod?: string;
+    paymentDueDate?: string;
+    paymentBankAccount?: string;
 }
 
 function saveSentInvoice(record: SentInvoiceRecord) {
@@ -399,6 +426,26 @@ export default function NewInvoice() {
             }
 
             const refNumber = sendResponse.data?.elementReferenceNumber || null;
+            const invoiceHash = sendResponse.data?.invoiceHash || null;
+
+            const itemsWithValues = draft.lines.map(line => {
+                const res = calcLine({
+                    qty: line.qty,
+                    priceNet: line.priceNet,
+                    discount: line.discount || 0,
+                    vatRate: line.vatRate
+                });
+                return {
+                    name: line.name,
+                    unit: line.unit,
+                    quantity: line.qty,
+                    unitPriceNet: line.priceNet,
+                    vatRate: typeof line.vatRate === 'number' ? `${line.vatRate}` : line.vatRate,
+                    netValue: res.net,
+                    vatValue: res.vat,
+                    grossValue: res.gross,
+                };
+            });
 
             saveSentInvoice({
                 invoiceNumber: draft.number,
@@ -408,6 +455,24 @@ export default function NewInvoice() {
                 buyerNip: draft.buyer.nip,
                 buyerName: draft.buyer.name,
                 grossAmount: totals.gross,
+                invoiceHash: invoiceHash || undefined,
+                issueDate: draft.issueDate,
+                saleDate: draft.sellDate,
+                issuePlace: draft.place,
+                sellerName: draft.seller.name,
+                sellerAddress: draft.seller.address,
+                sellerBankAccount: draft.seller.bankAccount,
+                buyerAddress: draft.buyer.address,
+                items: itemsWithValues,
+                totals: {
+                    net: totals.net,
+                    vat: totals.vat,
+                    gross: totals.gross,
+                    perRate: totals.perRate,
+                },
+                paymentMethod: draft.payment.method,
+                paymentDueDate: draft.payment.dueDate,
+                paymentBankAccount: draft.payment.bankAccount,
             });
 
             if (refNumber) {
@@ -442,22 +507,22 @@ export default function NewInvoice() {
     const { perRate } = totals;
 
     return (
-        <div className="dash-root print-only-container">
+        <div className="dash-root print-hide-nav">
             <SideNav />
 
             <main className="dash-main">
-                <header className="dash-header">
+                <header className="dash-header no-print">
                     <h1>Nowa Faktura</h1>
                     <p className="subtitle">Wystaw fakturę sprzedaży i wyślij do KSeF</p>
                 </header>
 
-                <section className="ops-section">
+                <section className="ops-section no-print">
                     <div className="ops-header">
                         <h2>Dane dokumentu</h2>
                         <div className="ops-actions">
                             <PrimaryButton onClick={saveDraft} icon="💾">Zapisz szkic</PrimaryButton>
                             <button className="btn-light" onClick={clearForm}>Wyczyść</button>
-                            <PrimaryButton onClick={handlePrint} icon="🖨">Generuj PDF</PrimaryButton>
+                            <PrimaryButton onClick={handlePrint} icon="🖨">Podgląd / Drukuj</PrimaryButton>
                             <PrimaryButton
                                 onClick={handleSendToKsef}
                                 icon="📤"
@@ -716,77 +781,153 @@ export default function NewInvoice() {
                     </div>
                 </section>
 
-                {/* PRINT AREA */}
+                {/* ========== SEKCJA DO DRUKU ========== */}
                 <section className="print-only">
-                    <div className="print-a4">
-                        <header className="print-header">
-                            <h1>Faktura VAT {draft.number}</h1>
-                            <div>Data wystawienia: {draft.issueDate} • Data sprzedaży: {draft.sellDate} • Miejsce: {draft.place}</div>
-                        </header>
-
-                        <div className="print-parties">
-                            <div>
-                                <h3>Sprzedawca</h3>
-                                <div>{draft.seller.name}</div>
-                                <div>NIP: {draft.seller.nip}</div>
-                                <div>{draft.seller.address}</div>
-                                {draft.seller.bankAccount && <div>Rachunek: {draft.seller.bankAccount}</div>}
+                    <div className="print-invoice">
+                        {/* Wrapper dla treści - flex: 1 */}
+                        <div className="print-content">
+                            {/* Nagłówek */}
+                            <div className="print-header">
+                                <div className="print-header-left">
+                                    <h2>Krajowy System e-Faktur</h2>
+                                    <div className="ksef-label">KSeF</div>
+                                </div>
+                                <div className="print-header-right">
+                                    <div className="invoice-number-label">Numer faktury</div>
+                                    <div className="invoice-number">{draft.number}</div>
+                                    <div className="invoice-type">Faktura VAT</div>
+                                </div>
                             </div>
-                            <div>
-                                <h3>Nabywca</h3>
-                                <div>{draft.buyer.name}</div>
-                                <div>NIP: {draft.buyer.nip}</div>
-                                <div>{draft.buyer.address}</div>
-                            </div>
-                        </div>
 
-                        <table className="print-table">
-                            <thead>
-                            <tr><th>#</th><th>Nazwa</th><th>PKWiU</th><th>Ilość</th><th>j.m.</th><th>Cena netto</th><th>VAT</th><th>Netto</th><th>VAT</th><th>Brutto</th></tr>
-                            </thead>
-                            <tbody>
-                            {draft.lines.map((l, i) => {
-                                const r = calcLine({ qty: l.qty, priceNet: l.priceNet, discount: l.discount || 0, vatRate: l.vatRate });
-                                return (
-                                    <tr key={i}>
-                                        <td>{i + 1}</td>
-                                        <td>{l.name}</td>
-                                        <td>{l.pkwiu || ''}</td>
-                                        <td>{l.qty}</td>
-                                        <td>{l.unit}</td>
-                                        <td>{formatPLN(l.priceNet)}</td>
-                                        <td>{typeof l.vatRate === 'number' ? `${l.vatRate}%` : l.vatRate}</td>
-                                        <td>{formatPLN(r.net)}</td>
-                                        <td>{formatPLN(r.vat)}</td>
-                                        <td>{formatPLN(r.gross)}</td>
+                            <hr className="print-hr" />
+
+                            {/* Strony */}
+                            <div className="print-parties">
+                                <div className="print-party">
+                                    <h3>Sprzedawca</h3>
+                                    <p>NIP: {draft.seller.nip}</p>
+                                    <p>Nazwa: {draft.seller.name}</p>
+                                    <p className="label">Adres</p>
+                                    <p>{draft.seller.address}</p>
+                                    <p>Polska</p>
+                                    {draft.seller.bankAccount && (
+                                        <p>Rachunek: {draft.seller.bankAccount}</p>
+                                    )}
+                                </div>
+                                <div className="print-party">
+                                    <h3>Nabywca</h3>
+                                    <p>NIP: {draft.buyer.nip}</p>
+                                    <p>Nazwa: {draft.buyer.name}</p>
+                                    <p className="label">Adres</p>
+                                    <p>{draft.buyer.address}</p>
+                                    <p>Polska</p>
+                                </div>
+                            </div>
+
+                            <hr className="print-hr" />
+
+                            {/* Szczegóły */}
+                            <div className="print-details">
+                                <h3>Szczegóły</h3>
+                                <div className="print-details-row">
+                                    <span><span className="label">Data wystawienia: </span>{draft.issueDate}</span>
+                                    <span><span className="label">Miejsce wystawienia: </span>{draft.place}</span>
+                                </div>
+                                <div className="print-details-row">
+                                    <span><span className="label">Data sprzedaży: </span>{draft.sellDate}</span>
+                                </div>
+                            </div>
+
+                            <hr className="print-hr" />
+
+                            {/* Pozycje */}
+                            <div className="print-items">
+                                <h3>Pozycje</h3>
+                                <p className="subtitle">Faktura wystawiona w cenach netto w walucie PLN</p>
+                                <table className="print-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Lp.</th>
+                                        <th>Nazwa towaru lub usługi</th>
+                                        <th className="text-right">Cena netto</th>
+                                        <th className="text-right">Ilość</th>
+                                        <th>J.m.</th>
+                                        <th>Stawka</th>
+                                        <th className="text-right">Wartość netto</th>
                                     </tr>
-                                );
-                            })}
-                            </tbody>
-                        </table>
-
-                        <div className="print-totals">
-                            <div className="by-rate">
-                                <h4>Podsumowanie VAT wg stawek</h4>
-                                <table>
-                                    <thead><tr><th>Stawka</th><th>Netto</th><th>VAT</th><th>Brutto</th></tr></thead>
+                                    </thead>
                                     <tbody>
-                                    {Object.keys(perRate).map((rate) => (
-                                        <tr key={rate}><td>{rate}</td><td>{formatPLN(perRate[rate].net)}</td><td>{formatPLN(perRate[rate].vat)}</td><td>{formatPLN(perRate[rate].gross)}</td></tr>
+                                    {draft.lines.map((l, i) => {
+                                        const r = calcLine({ qty: l.qty, priceNet: l.priceNet, discount: l.discount || 0, vatRate: l.vatRate });
+                                        return (
+                                            <tr key={i}>
+                                                <td>{i + 1}</td>
+                                                <td>{l.name}</td>
+                                                <td className="text-right">{formatPLN(l.priceNet)}</td>
+                                                <td className="text-right">{l.qty}</td>
+                                                <td>{l.unit}</td>
+                                                <td>{typeof l.vatRate === 'number' ? `${l.vatRate}%` : l.vatRate}</td>
+                                                <td className="text-right">{formatPLN(r.net)}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="print-total">
+                                Kwota należności ogółem: {formatPLN(totals.gross)} PLN
+                            </div>
+
+                            <hr className="print-hr" />
+
+                            {/* Podsumowanie VAT */}
+                            <div className="print-vat-summary">
+                                <h3>Podsumowanie stawek podatku</h3>
+                                <table className="print-vat-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Lp.</th>
+                                        <th>Stawka podatku</th>
+                                        <th className="text-right">Kwota netto</th>
+                                        <th className="text-right">Kwota podatku</th>
+                                        <th className="text-right">Kwota brutto</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {Object.keys(perRate).map((rate, i) => (
+                                        <tr key={rate}>
+                                            <td>{i + 1}</td>
+                                            <td>{rate}</td>
+                                            <td className="text-right">{formatPLN(perRate[rate].net)}</td>
+                                            <td className="text-right">{formatPLN(perRate[rate].vat)}</td>
+                                            <td className="text-right">{formatPLN(perRate[rate].gross)}</td>
+                                        </tr>
                                     ))}
                                     </tbody>
                                 </table>
                             </div>
-                            <div className="grand">
-                                <div>Razem netto: {formatPLN(totals.net)}</div>
-                                <div>Razem VAT: {formatPLN(totals.vat)}</div>
-                                <div>Razem brutto: {formatPLN(totals.gross)}</div>
+
+                            <hr className="print-hr" />
+
+                            {/* Płatność */}
+                            <div className="print-payment">
+                                <h3>Płatność</h3>
+                                <div className="print-payment-row">
+                                    <span><span className="label">Metoda płatności: </span>{draft.payment.method}</span>
+                                    <span><span className="label">Termin płatności: </span>{draft.payment.dueDate}</span>
+                                </div>
+                                {draft.payment.bankAccount && (
+                                    <p><span className="label">Rachunek bankowy: </span>{draft.payment.bankAccount}</p>
+                                )}
                             </div>
                         </div>
 
-                        <footer className="print-footer">
-                            <div>Metoda płatności: {draft.payment.method} • Termin płatności: {draft.payment.dueDate} • Rachunek: {draft.payment.bankAccount || '-'}</div>
-                        </footer>
+                        {/* STOPKA - poza print-content, więc margin-top: auto zadziała */}
+                        <div className="print-footer">
+                            <p>Wytworzona w <a href="https://ksef-master.netlify.app/"><strong>KSeF Master</strong></a></p>
+                            <p className="note">To jest podgląd faktury. Po wysłaniu do KSeF dokument otrzyma oficjalny numer i kod QR.</p>
+                        </div>
                     </div>
                 </section>
             </main>

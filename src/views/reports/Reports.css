@@ -1,58 +1,18 @@
 /* src/views/reports/Reports.css */
 
-/* ===== Karty ===== */
-.card {
-    background: var(--panel, #151a22);
-    border: 1px solid var(--border, #1f2733);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.card h3 {
-    margin: 0 0 16px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text, #e6e9ef);
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border, #1f2733);
-}
-
-/* ===== Pasek filtrów ===== */
+/* Filtry */
 .reports-filters {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
     gap: 16px;
-    align-items: end;
-    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
 }
 
 .reports-filters label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    color: var(--muted, #a4a9b6);
-    font-size: 13px;
-    font-weight: 500;
+    min-width: 120px;
 }
 
-.reports-filters input,
-.reports-filters select {
-    background: #0f141b;
-    color: var(--text, #e6e9ef);
-    border: 1px solid var(--border, #1f2733);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 14px;
-}
-
-.reports-filters input:focus,
-.reports-filters select:focus {
-    outline: none;
-    border-color: var(--accent, #22d3ee);
-}
-
-/* ===== KPI Grid ===== */
+/* KPI Grid */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -61,106 +21,98 @@
 }
 
 .kpi-card {
-    background: var(--panel, #151a22);
-    border: 1px solid var(--border, #1f2733);
-    border-radius: 12px;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    text-align: center;
+    padding: 24px 16px !important;
 }
 
 .kpi-title {
+    font-size: 13px;
     color: var(--muted, #a4a9b6);
-    font-size: 12px;
-    font-weight: 500;
+    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .kpi-value {
     font-size: 28px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text, #e6e9ef);
     font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.kpi-value.accent {
-    color: var(--accent, #22d3ee);
-}
-
-.kpi-value.success {
-    color: var(--success, #22c55e);
-}
-
-.kpi-value.danger {
-    color: var(--danger, #ef4444);
-}
-
-/* ===== Reports Grid ===== */
+/* Reports Grid */
 .reports-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
 }
 
-.reports-grid .card {
-    margin-bottom: 0;
-}
-
-/* ===== Tabele w raportach ===== */
-.reports-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.reports-table th {
-    text-align: left;
-    padding: 10px 12px;
-    font-size: 12px;
+.reports-grid .card h3 {
+    margin: 0 0 16px 0;
+    font-size: 15px;
     font-weight: 600;
-    color: var(--muted, #a4a9b6);
-    background: #0f141b;
+    color: var(--text, #e6e9ef);
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--border, #1f2733);
 }
 
-.reports-table td {
-    padding: 10px 12px;
+/* Type badge */
+.type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.type-badge.issued {
+    background: rgba(0, 224, 150, 0.15);
+    color: #00e096;
+}
+
+.type-badge.received {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+/* Info banner */
+.info-banner {
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    color: #93c5fd;
     font-size: 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.reports-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.reports-table .text-right {
+/* Text align */
+.text-right {
     text-align: right;
-    font-family: 'Monaco', 'Consolas', monospace;
 }
 
-/* ===== Responsywność ===== */
-@media (max-width: 1100px) {
-    .reports-filters {
-        grid-template-columns: 1fr 1fr;
-    }
-
+/* Responsywność */
+@media (max-width: 1200px) {
     .kpi-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
     }
 
     .reports-grid {
         grid-template-columns: 1fr;
     }
-}
 
-@media (max-width: 640px) {
     .reports-filters {
-        grid-template-columns: 1fr;
+        flex-direction: column;
     }
 
-    .kpi-grid {
-        grid-template-columns: 1fr;
+    .reports-filters label {
+        width: 100%;
     }
 
     .kpi-value {
@@ -168,31 +120,22 @@
     }
 }
 
-/* ===== Druk ===== */
+/* Print styles */
 @media print {
-    .reports-filters {
-        display: none;
+    .ops-actions {
+        display: none !important;
     }
 
-    .kpi-grid,
+    .kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .kpi-card {
+        border: 1px solid #ccc !important;
+        background: #f9f9f9 !important;
+    }
+
     .reports-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .kpi-card,
-    .card {
-        break-inside: avoid;
-        border: 1px solid #ccc;
-        background: white;
-        color: black;
-    }
-
-    .kpi-title {
-        color: #666;
-    }
-
-    .kpi-value {
-        color: black;
+        grid-template-columns: 1fr 1fr;
     }
 }

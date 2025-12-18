@@ -1,14 +1,11 @@
-// src/views/issued/IssuedInvoices.tsx
 import { useMemo, useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import '../received/ReceivedInvoices.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
-import { listIssued, type Invoice, type ListInvoicesParams, type UpoStatus } from '../../services/ksefApi';
+import { listIssued, downloadInvoicePdf, type Invoice, type ListInvoicesParams, type UpoStatus, type GeneratePdfRequest } from '../../services/ksefApi';
 import SideNav from '../../components/layout/SideNav';
 
-// Typ dla lokalnie zapisanych wysłanych faktur
 interface SentInvoiceRecord {
     invoiceNumber: string;
     elementReferenceNumber: string;
@@ -17,6 +14,33 @@ interface SentInvoiceRecord {
     buyerNip: string;
     buyerName: string;
     grossAmount: number;
+    invoiceHash?: string;
+    issueDate?: string;
+    saleDate?: string;
+    issuePlace?: string;
+    sellerName?: string;
+    sellerAddress?: string;
+    sellerBankAccount?: string;
+    buyerAddress?: string;
+    items?: {
+        name: string;
+        unit: string;
+        quantity: number;
+        unitPriceNet: number;
+        vatRate: string;
+        netValue: number;
+        vatValue: number;
+        grossValue: number;
+    }[];
+    totals?: {
+        net: number;
+        vat: number;
+        gross: number;
+        perRate?: Record<string, { net: number; vat: number; gross: number }>;
+    };
+    paymentMethod?: string;
+    paymentDueDate?: string;
+    paymentBankAccount?: string;
 }
 
 const SENT_INVOICES_KEY = 'sentInvoices';
@@ -31,16 +55,14 @@ function loadSentInvoices(): SentInvoiceRecord[] {
 }
 
 export default function IssuedInvoices() {
-    // Filters state
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const [nip, setNip] = useState('');
     const [status, setStatus] = useState<UpoStatus | ''>('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [activeTab, setActiveTab] = useState<'ksef' | 'local'>('ksef');
+    const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
-    // Lokalnie zapisane wysłane faktury
     const sentInvoices = useMemo(() => loadSentInvoices(), []);
 
     const params: ListInvoicesParams = useMemo(() => ({
@@ -67,28 +89,95 @@ export default function IssuedInvoices() {
         });
     }, [invoices, nip, status, from, to]);
 
-    // Filtrowanie lokalnych faktur
-    const filteredLocal = useMemo(() => {
-        return sentInvoices.filter((row) => {
-            if (nip && !row.buyerNip.includes(nip)) return false;
-            const sentDate = row.sentAt.split('T')[0];
-            if (from && sentDate < from) return false;
-            if (to && sentDate > to) return false;
-            return true;
-        });
-    }, [sentInvoices, nip, from, to]);
-
-    const total = activeTab === 'ksef' ? filtered.length : filteredLocal.length;
+    const total = filtered.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const pageClamped = Math.min(page, totalPages);
-
-    const paged = activeTab === 'ksef'
-        ? filtered.slice((pageClamped - 1) * pageSize, pageClamped * pageSize)
-        : filteredLocal.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
+    const paged = filtered.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
 
     const errorMessage = error
         ? 'Nie udało się pobrać faktur. Sprawdź, czy serwer backendu jest uruchomiony.'
         : null;
+
+    function findLocalData(invoice: Invoice): SentInvoiceRecord | undefined {
+        return sentInvoices.find(s => s.invoiceNumber === invoice.numerFaktury);
+    }
+
+    async function handleDownloadPdf(invoice: Invoice) {
+        setDownloadingPdf(invoice.numerKsef);
+
+        try {
+            const localData = findLocalData(invoice);
+
+            if (localData?.invoiceHash) {
+                // Mamy pełne dane lokalne - użyj ich
+                const request: GeneratePdfRequest = {
+                    source: 'local',
+                    invoiceNumber: localData.invoiceNumber,
+                    issueDate: localData.issueDate,
+                    saleDate: localData.saleDate,
+                    issuePlace: localData.issuePlace,
+                    invoiceHash: localData.invoiceHash,
+                    ksefNumber: invoice.numerKsef,
+                    seller: {
+                        nip: localData.sellerNip,
+                        name: localData.sellerName || '',
+                        address: localData.sellerAddress || '',
+                        bankAccount: localData.sellerBankAccount,
+                    },
+                    buyer: {
+                        nip: localData.buyerNip,
+                        name: localData.buyerName,
+                        address: localData.buyerAddress || '',
+                    },
+                    items: localData.items,
+                    totals: localData.totals,
+                    payment: {
+                        method: localData.paymentMethod || 'przelew',
+                        dueDate: localData.paymentDueDate,
+                        bankAccount: localData.paymentBankAccount,
+                    },
+                };
+                await downloadInvoicePdf(request);
+            } else if (invoice.invoiceHash) {
+                // Mamy hash z KSeF - wygeneruj uproszczony PDF
+                const request: GeneratePdfRequest = {
+                    source: 'local',
+                    invoiceNumber: invoice.numerFaktury,
+                    issueDate: invoice.dataWystawienia,
+                    invoiceHash: invoice.invoiceHash,
+                    ksefNumber: invoice.numerKsef,
+                    seller: {
+                        nip: invoice.nipSprzedawcy || '',
+                        name: invoice.nazwaSprzedawcy || '',
+                        address: '',
+                    },
+                    buyer: {
+                        nip: invoice.nipKontrahenta,
+                        name: invoice.nazwaKontrahenta || '',
+                        address: '',
+                    },
+                    totals: {
+                        net: invoice.kwotaNetto || 0,
+                        vat: invoice.kwotaVat || 0,
+                        gross: invoice.kwotaBrutto,
+                    },
+                };
+                await downloadInvoicePdf(request);
+            } else {
+                alert('Brak danych do wygenerowania PDF dla tej faktury.');
+            }
+        } catch (error) {
+            console.error('Błąd pobierania PDF:', error);
+            alert(error instanceof Error ? error.message : 'Nie udało się pobrać PDF');
+        } finally {
+            setDownloadingPdf(null);
+        }
+    }
+
+    function canDownloadPdf(invoice: Invoice): boolean {
+        const localData = findLocalData(invoice);
+        return !!(localData?.invoiceHash || invoice.invoiceHash);
+    }
 
     return (
         <div className="dash-root">
@@ -110,60 +199,16 @@ export default function IssuedInvoices() {
                         </div>
                     </div>
 
-                    {/* Tabs */}
-                    <div className="tabs" style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginBottom: '16px',
-                        borderBottom: '1px solid var(--border, #e5e7eb)',
-                        paddingBottom: '8px'
-                    }}>
-                        <button
-                            className={`tab-btn ${activeTab === 'ksef' ? 'active' : ''}`}
-                            onClick={() => { setActiveTab('ksef'); setPage(1); }}
-                            style={{
-                                padding: '8px 16px',
-                                border: 'none',
-                                background: activeTab === 'ksef' ? 'var(--accent, #00e096)' : 'transparent',
-                                color: activeTab === 'ksef' ? '#000' : 'var(--muted, #6b7280)',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontWeight: activeTab === 'ksef' ? 600 : 400,
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            📥 Z KSeF ({invoices.length})
-                        </button>
-                        <button
-                            className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}
-                            onClick={() => { setActiveTab('local'); setPage(1); }}
-                            style={{
-                                padding: '8px 16px',
-                                border: 'none',
-                                background: activeTab === 'local' ? 'var(--accent, #00e096)' : 'transparent',
-                                color: activeTab === 'local' ? '#000' : 'var(--muted, #6b7280)',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontWeight: activeTab === 'local' ? 600 : 400,
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            📤 Wysłane z aplikacji ({sentInvoices.length})
-                        </button>
-                    </div>
-
                     <div className="filters">
                         <label>Data od<input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} /></label>
                         <label>Data do<input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} /></label>
                         <label>NIP<input type="text" placeholder="np. 5250012312" value={nip} onChange={(e) => { setNip(e.target.value.replace(/\D/g, '').slice(0, 10)); setPage(1); }} /></label>
-                        {activeTab === 'ksef' && (
-                            <label>Status<select value={status} onChange={(e) => { setStatus(e.target.value as UpoStatus | ''); setPage(1); }}>
-                                <option value="">Wszystkie</option>
-                                <option value="accepted">Przyjęta</option>
-                                <option value="pending">W Trakcie</option>
-                                <option value="rejected">Odrzucona</option>
-                            </select></label>
-                        )}
+                        <label>Status<select value={status} onChange={(e) => { setStatus(e.target.value as UpoStatus | ''); setPage(1); }}>
+                            <option value="">Wszystkie</option>
+                            <option value="accepted">Przyjęta</option>
+                            <option value="pending">W Trakcie</option>
+                            <option value="rejected">Odrzucona</option>
+                        </select></label>
                         <label>Na stronę<select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
                             <option value={5}>5</option>
                             <option value={10}>10</option>
@@ -172,11 +217,10 @@ export default function IssuedInvoices() {
                     </div>
 
                     <div className="table-wrap">
-                        {isLoading && activeTab === 'ksef' && <div className="loading-overlay">Ładowanie...</div>}
-                        {errorMessage && activeTab === 'ksef' && <div className="error-message">{errorMessage}</div>}
+                        {isLoading && <div className="loading-overlay">Ładowanie...</div>}
+                        {errorMessage && <div className="error-message">{errorMessage}</div>}
 
-                        {/* Tabela KSeF */}
-                        {activeTab === 'ksef' && !isLoading && !errorMessage && (
+                        {!isLoading && !errorMessage && (
                             <table className="data-table">
                                 <thead>
                                 <tr>
@@ -186,96 +230,53 @@ export default function IssuedInvoices() {
                                     <th>NIP nabywcy</th>
                                     <th>Brutto</th>
                                     <th>Status</th>
-                                    <th></th>
+                                    <th>PDF</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {paged.length > 0 ? (
-                                    (paged as Invoice[]).map((row) => (
-                                        <tr key={row.numerKsef}>
-                                            <td>{row.dataWystawienia}</td>
-                                            <td>
-                                                <code style={{
-                                                    fontSize: '11px',
-                                                    background: 'rgba(0,224,150,0.1)',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px',
-                                                    color: '#00e096'
-                                                }}>
-                                                    {row.numerKsef}
-                                                </code>
-                                            </td>
-                                            <td>{row.numerFaktury}</td>
-                                            <td>{row.nipKontrahenta}</td>
-                                            <td>{row.kwotaBrutto.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</td>
-                                            <td>
-                                                <span className={`status-dot ${row.status}`} aria-label={row.status} />
-                                                <span className="status-text">
+                                    paged.map((row) => {
+                                        const canPdf = canDownloadPdf(row);
+                                        return (
+                                            <tr key={row.numerKsef}>
+                                                <td>{row.dataWystawienia}</td>
+                                                <td>
+                                                    <code style={{
+                                                        fontSize: '11px',
+                                                        background: 'rgba(0,224,150,0.1)',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        color: '#00e096'
+                                                    }}>
+                                                        {row.numerKsef}
+                                                    </code>
+                                                </td>
+                                                <td>{row.numerFaktury}</td>
+                                                <td>{row.nipKontrahenta}</td>
+                                                <td>{row.kwotaBrutto.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</td>
+                                                <td>
+                                                    <span className={`status-dot ${row.status}`} aria-label={row.status} />
+                                                    <span className="status-text">
                                                         {row.status === 'accepted' ? 'Przyjęta' : row.status === 'rejected' ? 'Odrzucona' : 'W Trakcie'}
                                                     </span>
-                                            </td>
-                                            <td>
-                                                <Link className="btn-light small" to={`/invoices/${row.numerKsef}`}>Szczegóły</Link>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        className="btn-light small"
+                                                        onClick={() => handleDownloadPdf(row)}
+                                                        disabled={downloadingPdf === row.numerKsef || !canPdf}
+                                                        title={canPdf ? 'Pobierz PDF z kodem QR' : 'Brak danych do PDF'}
+                                                    >
+                                                        {downloadingPdf === row.numerKsef ? '⏳' : canPdf ? '📄' : '—'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={7} style={{ textAlign: 'center' }}>
                                             Brak faktur spełniających kryteria.
-                                        </td>
-                                    </tr>
-                                )}
-                                </tbody>
-                            </table>
-                        )}
-
-                        {/* Tabela lokalnych wysłanych faktur */}
-                        {activeTab === 'local' && (
-                            <table className="data-table">
-                                <thead>
-                                <tr>
-                                    <th>Data wysłania</th>
-                                    <th>Nr referencyjny KSeF</th>
-                                    <th>Nr faktury</th>
-                                    <th>Nabywca</th>
-                                    <th>NIP nabywcy</th>
-                                    <th>Brutto</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {paged.length > 0 ? (
-                                    (paged as SentInvoiceRecord[]).map((row, idx) => (
-                                        <tr key={`${row.elementReferenceNumber}-${idx}`}>
-                                            <td>{new Date(row.sentAt).toLocaleString('pl-PL')}</td>
-                                            <td>
-                                                <code style={{
-                                                    fontSize: '11px',
-                                                    background: 'rgba(0,224,150,0.1)',
-                                                    padding: '4px 8px',
-                                                    borderRadius: '4px',
-                                                    color: '#00e096',
-                                                    display: 'inline-block',
-                                                    maxWidth: '200px',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap'
-                                                }}
-                                                      title={row.elementReferenceNumber}
-                                                >
-                                                    {row.elementReferenceNumber || '-'}
-                                                </code>
-                                            </td>
-                                            <td>{row.invoiceNumber}</td>
-                                            <td>{row.buyerName}</td>
-                                            <td>{row.buyerNip}</td>
-                                            <td>{row.grossAmount.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={6} style={{ textAlign: 'center', padding: '32px' }}>
-                                            Nie wysłałeś jeszcze żadnych faktur z tej aplikacji.
                                         </td>
                                     </tr>
                                 )}
@@ -289,22 +290,6 @@ export default function IssuedInvoices() {
                         <span style={{ alignSelf: 'center', color: 'var(--muted)' }}>Strona {pageClamped} / {totalPages}</span>
                         <button className="btn-light small" disabled={pageClamped >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Następna</button>
                     </div>
-
-                    {/* Info o numerach referencyjnych */}
-                    {activeTab === 'local' && sentInvoices.length > 0 && (
-                        <div style={{
-                            marginTop: '16px',
-                            padding: '12px',
-                            background: 'rgba(0, 224, 150, 0.05)',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(0, 224, 150, 0.2)',
-                            fontSize: '13px',
-                            color: 'var(--muted)'
-                        }}>
-                            💡 <strong>Tip:</strong> Numer referencyjny KSeF (ElementReferenceNumber) pozwala śledzić status faktury w systemie KSeF.
-                            Możesz go użyć do weryfikacji w oficjalnym portalu KSeF.
-                        </div>
-                    )}
                 </section>
             </main>
         </div>

@@ -24,8 +24,3 @@ html, body, #root {
 @media (max-width: 1100px) {
     :root { --sidenav-w: 72px; }
 }
-
-@media print {
-    .dash-root { grid-template-columns: 1fr !important; }
-    .side-nav { display: none !important; }
-}

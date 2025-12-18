@@ -152,6 +152,7 @@ export interface SendInvoiceResponse {
         elementReferenceNumber: string;
         processingCode: number;
         processingDescription: string;
+        invoiceHash?: string;
     };
 }
 
@@ -232,6 +233,12 @@ export interface Invoice {
     kwotaBrutto: number;
     dataWystawienia: string;
     status: UpoStatus;
+    // Dodatkowe pola do PDF
+    invoiceHash?: string;
+    kwotaNetto?: number;
+    kwotaVat?: number;
+    nazwaSprzedawcy?: string;
+    nipSprzedawcy?: string;
 }
 
 export interface ListInvoicesParams {
@@ -255,6 +262,12 @@ function mapToLegacyInvoice(invoice: InvoiceMetadata, type: 'issued' | 'received
         kwotaBrutto: invoice.grossAmount || 0,
         dataWystawienia: invoice.issueDate || invoice.invoicingDate?.split('T')[0] || '',
         status: 'accepted' as UpoStatus,
+        // Dodatkowe pola do PDF
+        invoiceHash: invoice.invoiceHash || undefined,
+        kwotaNetto: invoice.netAmount || undefined,
+        kwotaVat: invoice.vatAmount || undefined,
+        nazwaSprzedawcy: invoice.seller?.name || undefined,
+        nipSprzedawcy: invoice.seller?.nip || undefined,
     };
 }
 
@@ -326,4 +339,85 @@ export async function listContractors(_params?: ContractorQueryParams): Promise<
 
 export async function upsertContractor(): Promise<never> {
     throw new Error('Not implemented');
+}
+
+// ===== PDF Generation =====
+
+export interface GeneratePdfRequest {
+    source: 'local' | 'ksef';
+    ksefNumber?: string;
+    invoiceHash?: string;
+    invoiceNumber?: string;
+    issueDate?: string;
+    saleDate?: string;
+    issuePlace?: string;
+    seller?: {
+        nip: string;
+        name: string;
+        address: string;
+        bankAccount?: string;
+    };
+    buyer?: {
+        nip: string;
+        name: string;
+        address: string;
+    };
+    items?: {
+        name: string;
+        unit: string;
+        quantity: number;
+        unitPriceNet: number;
+        vatRate: string;
+        netValue: number;
+        vatValue: number;
+        grossValue: number;
+    }[];
+    totals?: {
+        net: number;
+        vat: number;
+        gross: number;
+        perRate?: Record<string, { net: number; vat: number; gross: number }>;
+    };
+    payment?: {
+        method: string;
+        dueDate?: string;
+        bankAccount?: string;
+    };
+}
+
+export async function downloadInvoicePdf(request: GeneratePdfRequest): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/ksef/invoice/pdf`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Błąd pobierania PDF' }));
+        throw new Error(error.error || 'Nie udało się wygenerować PDF');
+    }
+
+    // Pobierz plik
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    // Wyciągnij nazwę pliku z Content-Disposition lub użyj domyślnej
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let fileName = 'faktura.pdf';
+    if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match && match[1]) {
+            fileName = match[1].replace(/['"]/g, '');
+        }
+    }
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
