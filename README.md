@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# KSeF Master
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+KSeF Master to zaawansowana aplikacja webowa typu SPA (Single Page Application) służąca do kompleksowej obsługi Krajowego Systemu e-Faktur (KSeF). Projekt został stworzony z myślą o firmach i biurach rachunkowych, które potrzebują intuicyjnego interfejsu do zarządzania fakturami ustrukturyzowanymi.
 
-Currently, two official plugins are available:
+## Główne Funkcjonalności
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+-   **Autentykacja KSeF**: Bezpieczne logowanie przy użyciu NIP i tokena sesyjnego.
+-   **Wystawianie Faktur**: Kreator faktur ustrukturyzowanych zgodnych ze schemą FA(2).
+-   **Przeglądanie Faktur**: Lista faktur wystawionych i odebranych z możliwością filtrowania.
+-   **Pobieranie PDF**: Automatyczne generowanie wizualizacji faktur w formacie PDF.
+-   **Raportowanie**: Moduł analityczny prezentujący podsumowania finansowe.
+-   **Baza Kontrahentów**: Zarządzanie danymi klientów i dostawców.
+-   **Ciemny Motyw**: Nowoczesny interfejs UI zoptymalizowany pod kątem komfortu pracy.
 
-## React Compiler
+## Wymagania Systemowe
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+-   **Node.js**: 18.x lub nowszy.
+-   **Przeglądarka**: Najnowsza wersja Chrome, Firefox, Safari lub Edge.
+-   **Dostęp do internetu**: Niezbędny do komunikacji z bramką KSeF.
 
-## Expanding the ESLint configuration
+## Szybki Start
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1.  Zainstaluj zależności:
+    ```bash
+    npm install
+    ```
+2.  Skonfiguruj zmienne środowiskowe w pliku `.env` (patrz [Konfiguracja](docs/CONFIGURATION.md)).
+3.  Uruchom aplikację w trybie deweloperskim:
+    ```bash
+    npm run dev
+    ```
+4.  Otwórz `http://localhost:5173` w przeglądarce.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Dokumentacja Szczegółowa
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Pełna dokumentacja projektu znajduje się w folderze `docs/`:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1.  [**Instalacja**](docs/INSTALLATION.md) – Szczegółowy setup środowiska.
+2.  [**Architektura**](docs/ARCHITECTURE.md) – Opis struktury projektu i flow danych.
+3.  [**API**](docs/API.md) – Dokumentacja punktów styku z backendem.
+4.  [**Konfiguracja**](docs/CONFIGURATION.md) – Opis zmiennych środowiskowych.
+5.  [**Development**](docs/DEVELOPMENT.md) – Wytyczne dla programistów.
+6.  [**Deployment**](docs/DEPLOYMENT.md) – Instrukcje wdrażania na produkcję.
+7.  [**Contributing**](docs/CONTRIBUTING.md) – Jak kontrybuować do projektu.
+8.  [**Changelog**](docs/CHANGELOG.md) – Historia zmian.
+9.  [**FAQ**](docs/FAQ.md) – Najczęściej zadawane pytania.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+© 2025 KSeF Master Team. Projekt stworzony w celach demonstracyjnych i integracyjnych.
