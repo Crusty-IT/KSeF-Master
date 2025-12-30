@@ -70,6 +70,7 @@
 .nip-label {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 13px;
   color: var(--muted);
@@ -90,7 +91,7 @@
 }
 .nip-input::placeholder { color: #8a93a8; }
 .nip-input:focus { border-color: #41506b; box-shadow: 0 0 0 4px rgba(65,80,107,0.35); }
-.nip-help { margin: 6px 2px 0; font-size: 12px; color: #94a3b8; }
+.nip-help { margin: 6px 2px 0; font-size: 12px; color: #94a3b8; text-align: center; }
 
 .primary-actions {
   display: grid;
@@ -158,7 +159,10 @@
 /* Token form */
 .token-form { margin-top: 20px; }
 .token-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-size: 13px;
   color: var(--muted);
   margin: 0 0 8px 2px;
@@ -198,6 +202,7 @@
   margin: 8px 2px 0;
   font-size: 12px;
   color: #94a3b8;
+  text-align: center;
 }
 
 /* Demo link */
