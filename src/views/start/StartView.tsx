@@ -164,7 +164,7 @@ export default function StartView() {
                     }}>
                         <strong>Jak uzyskać token?</strong>
                         <ol style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                            <li>Wejdź na <a href="https://ksef-test.mf.gov.pl" target="_blank" rel="noopener" style={{ color: '#60a5fa' }}>ksef-test.mf.gov.pl</a></li>
+                            <li>Wejdź na <a href="https://web2te-ksef.mf.gov.pl/web" target="_blank" rel="noopener" style={{ color: '#60a5fa' }}>ksef-test.mf.gov.pl</a></li>
                             <li>Zaloguj się podając NIP (na środowisku testowym to wystarcza)</li>
                             <li>Przejdź do ustawień → Tokeny</li>
                             <li>Wygeneruj nowy token i skopiuj go tutaj</li>

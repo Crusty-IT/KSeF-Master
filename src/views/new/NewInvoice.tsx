@@ -923,7 +923,7 @@ export default function NewInvoice() {
                             </div>
                         </div>
 
-                        {/* STOPKA - poza print-content, więc margin-top: auto zadziała */}
+                        {/* STOPKA */}
                         <div className="print-footer">
                             <p>Wytworzona w <a href="https://ksef-master.netlify.app/"><strong>KSeF Master</strong></a></p>
                             <p className="note">To jest podgląd faktury. Po wysłaniu do KSeF dokument otrzyma oficjalny numer i kod QR.</p>
