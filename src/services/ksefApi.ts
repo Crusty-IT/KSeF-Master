@@ -8,7 +8,16 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 60000,
+    timeout: 120000, // Zwiększony timeout do 120 sekund (2 minuty) dla Render cold start
+});
+
+// Dodatkowa konfiguracja dla pierwszego żądania (status check)
+const apiClientWithLongTimeout = axios.create({
+    baseURL: `${API_BASE_URL}/api/ksef`,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    timeout: 180000, // 3 minuty dla pierwszego żądania
 });
 
 // ===== Typy =====
@@ -159,7 +168,8 @@ export interface SendInvoiceResponse {
 // ===== API Functions =====
 
 export async function getStatus(): Promise<SessionStatus> {
-    const response = await apiClient.get<SessionStatus>('/status');
+    // Używamy klienta z dłuższym timeoutem dla pierwszego żądania (cold start)
+    const response = await apiClientWithLongTimeout.get<SessionStatus>('/status');
     return response.data;
 }
 
