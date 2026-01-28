@@ -1,0 +1,102 @@
+/* src/components/startup/ServerStartup.css */
+.server-startup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(1200px 600px at 80% -10%, rgba(59,130,246,0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(99,102,241,0.10), transparent 60%),
+    #0d0f14;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.server-startup-content {
+    text-align: center;
+    padding: 48px;
+    max-width: 400px;
+}
+
+.server-startup-icon {
+    margin-bottom: 24px;
+    font-size: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(59, 130, 246, 0.2);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.server-startup-title {
+    margin: 0 0 12px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #e7eaf3;
+}
+
+.server-startup-message {
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: #a7b1c2;
+    line-height: 1.5;
+}
+
+.server-startup-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.progress-bar {
+    width: 200px;
+    height: 4px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.server-startup-retry-btn {
+    margin-top: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(180deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.server-startup-retry-btn:hover {
+    filter: brightness(1.05);
+}

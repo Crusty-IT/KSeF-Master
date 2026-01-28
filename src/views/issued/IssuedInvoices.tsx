@@ -1,9 +1,12 @@
+// src/views/issued/IssuedInvoices.tsx
 import { useMemo, useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import '../received/ReceivedInvoices.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
-import { listIssued, downloadInvoicePdf, type Invoice, type ListInvoicesParams, type UpoStatus, type GeneratePdfRequest } from '../../services/ksefApi';
+import InvoiceFilters from '../../components/filters/InvoiceFilters';
+import { listIssued, downloadInvoicePdf, type Invoice, type ListInvoicesParams, type GeneratePdfRequest } from '../../services/ksefApi';
+import { useInvoiceFilters } from '../../hooks/useInvoiceFilters';
 import SideNav from '../../components/layout/SideNav';
 
 interface SentInvoiceRecord {
@@ -55,10 +58,6 @@ function loadSentInvoices(): SentInvoiceRecord[] {
 }
 
 export default function IssuedInvoices() {
-    const [from, setFrom] = useState('');
-    const [to, setTo] = useState('');
-    const [nip, setNip] = useState('');
-    const [status, setStatus] = useState<UpoStatus | ''>('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
@@ -66,12 +65,9 @@ export default function IssuedInvoices() {
     const sentInvoices = useMemo(() => loadSentInvoices(), []);
 
     const params: ListInvoicesParams = useMemo(() => ({
-        nip: nip || undefined,
-        status: status || undefined,
-        date: (from || to) ? { from: from || undefined, to: to || undefined } : undefined,
         page,
         pageSize,
-    }), [nip, status, from, to, page, pageSize]);
+    }), [page, pageSize]);
 
     const { data: invoices = [], isLoading, isFetching, error, refetch } = useQuery<Invoice[]>({
         queryKey: ['issuedInvoices', params],
@@ -79,20 +75,21 @@ export default function IssuedInvoices() {
         placeholderData: keepPreviousData,
     });
 
-    const filtered = useMemo(() => {
-        return invoices.filter((row) => {
-            if (nip && !row.nipKontrahenta.includes(nip)) return false;
-            if (status && row.status !== status) return false;
-            if (from && row.dataWystawienia < from) return false;
-            if (to && row.dataWystawienia > to) return false;
-            return true;
-        });
-    }, [invoices, nip, status, from, to]);
+    const {
+        filters,
+        setFilters,
+        resetFilters,
+        filteredInvoices,
+        selection,
+        toggleSelection,
+        toggleSelectAll,
+        selectedCount,
+    } = useInvoiceFilters(invoices);
 
-    const total = filtered.length;
+    const total = filteredInvoices.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const pageClamped = Math.min(page, totalPages);
-    const paged = filtered.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
+    const paged = filteredInvoices.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
 
     const errorMessage = error
         ? 'Nie udało się pobrać faktur. Sprawdź, czy serwer backendu jest uruchomiony.'
@@ -109,7 +106,6 @@ export default function IssuedInvoices() {
             const localData = findLocalData(invoice);
 
             if (localData?.invoiceHash) {
-                // Mamy pełne dane lokalne - użyj ich
                 const request: GeneratePdfRequest = {
                     source: 'local',
                     invoiceNumber: localData.invoiceNumber,
@@ -139,7 +135,6 @@ export default function IssuedInvoices() {
                 };
                 await downloadInvoicePdf(request);
             } else if (invoice.invoiceHash) {
-                // Mamy hash z KSeF - wygeneruj uproszczony PDF
                 const request: GeneratePdfRequest = {
                     source: 'local',
                     invoiceNumber: invoice.numerFaktury,
@@ -166,9 +161,9 @@ export default function IssuedInvoices() {
             } else {
                 alert('Brak danych do wygenerowania PDF dla tej faktury.');
             }
-        } catch (error) {
-            console.error('Błąd pobierania PDF:', error);
-            alert(error instanceof Error ? error.message : 'Nie udało się pobrać PDF');
+        } catch (err) {
+            console.error('Błąd pobierania PDF:', err);
+            alert(err instanceof Error ? err.message : 'Nie udało się pobrać PDF');
         } finally {
             setDownloadingPdf(null);
         }
@@ -193,27 +188,41 @@ export default function IssuedInvoices() {
                     <div className="ops-header">
                         <h2>Wyszukaj i filtruj</h2>
                         <div className="ops-actions">
+                            {selectedCount > 0 && (
+                                <span className="selection-count">
+                                    Zaznaczono: {selectedCount}
+                                </span>
+                            )}
                             <PrimaryButton onClick={() => refetch()} disabled={isLoading || isFetching} icon="⟳">
                                 {isLoading || isFetching ? 'Odświeżanie...' : 'Odśwież'}
                             </PrimaryButton>
                         </div>
                     </div>
 
-                    <div className="filters">
-                        <label>Data od<input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} /></label>
-                        <label>Data do<input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} /></label>
-                        <label>NIP<input type="text" placeholder="np. 5250012312" value={nip} onChange={(e) => { setNip(e.target.value.replace(/\D/g, '').slice(0, 10)); setPage(1); }} /></label>
-                        <label>Status<select value={status} onChange={(e) => { setStatus(e.target.value as UpoStatus | ''); setPage(1); }}>
-                            <option value="">Wszystkie</option>
-                            <option value="accepted">Przyjęta</option>
-                            <option value="pending">W Trakcie</option>
-                            <option value="rejected">Odrzucona</option>
-                        </select></label>
-                        <label>Na stronę<select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                        </select></label>
+                    <InvoiceFilters
+                        filters={filters}
+                        onChange={setFilters}
+                        onReset={resetFilters}
+                        showSuspiciousFilter={false}
+                    />
+
+                    <div className="table-controls">
+                        <label className="page-size-label">
+                            Na stronę:
+                            <select
+                                value={pageSize}
+                                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                                className="page-size-select"
+                            >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                        </label>
+                        <span className="results-count">
+                            Wyników: {total}
+                        </span>
                     </div>
 
                     <div className="table-wrap">
@@ -224,12 +233,20 @@ export default function IssuedInvoices() {
                             <table className="data-table">
                                 <thead>
                                 <tr>
+                                    <th className="checkbox-col">
+                                        <input
+                                            type="checkbox"
+                                            checked={selection.isAllSelected && paged.length > 0}
+                                            onChange={toggleSelectAll}
+                                            title="Zaznacz wszystkie"
+                                        />
+                                    </th>
                                     <th>Data</th>
                                     <th>Nr KSeF</th>
                                     <th>Nr faktury</th>
                                     <th>NIP nabywcy</th>
+                                    <th>Nazwa</th>
                                     <th>Brutto</th>
-                                    <th>Status</th>
                                     <th>PDF</th>
                                 </tr>
                                 </thead>
@@ -238,27 +255,28 @@ export default function IssuedInvoices() {
                                     paged.map((row) => {
                                         const canPdf = canDownloadPdf(row);
                                         return (
-                                            <tr key={row.numerKsef}>
+                                            <tr
+                                                key={row.numerKsef}
+                                                className={selection.selectedIds.has(row.numerKsef) ? 'row-selected' : ''}
+                                            >
+                                                <td className="checkbox-col">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selection.selectedIds.has(row.numerKsef)}
+                                                        onChange={() => toggleSelection(row.numerKsef)}
+                                                    />
+                                                </td>
                                                 <td>{row.dataWystawienia}</td>
                                                 <td>
-                                                    <code style={{
-                                                        fontSize: '11px',
-                                                        background: 'rgba(0,224,150,0.1)',
-                                                        padding: '2px 6px',
-                                                        borderRadius: '4px',
-                                                        color: '#00e096'
-                                                    }}>
+                                                    <code className="ksef-number">
                                                         {row.numerKsef}
                                                     </code>
                                                 </td>
                                                 <td>{row.numerFaktury}</td>
                                                 <td>{row.nipKontrahenta}</td>
-                                                <td>{row.kwotaBrutto.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</td>
-                                                <td>
-                                                    <span className={`status-dot ${row.status}`} aria-label={row.status} />
-                                                    <span className="status-text">
-                                                        {row.status === 'accepted' ? 'Przyjęta' : row.status === 'rejected' ? 'Odrzucona' : 'W Trakcie'}
-                                                    </span>
+                                                <td className="contractor-name">{row.nazwaKontrahenta || '—'}</td>
+                                                <td className="amount-cell">
+                                                    {row.kwotaBrutto.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}
                                                 </td>
                                                 <td>
                                                     <button
@@ -275,7 +293,7 @@ export default function IssuedInvoices() {
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan={7} style={{ textAlign: 'center' }}>
+                                        <td colSpan={8} style={{ textAlign: 'center' }}>
                                             Brak faktur spełniających kryteria.
                                         </td>
                                     </tr>
@@ -285,10 +303,24 @@ export default function IssuedInvoices() {
                         )}
                     </div>
 
-                    <div className="pagination" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-                        <button className="btn-light small" disabled={pageClamped <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Poprzednia</button>
-                        <span style={{ alignSelf: 'center', color: 'var(--muted)' }}>Strona {pageClamped} / {totalPages}</span>
-                        <button className="btn-light small" disabled={pageClamped >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Następna</button>
+                    <div className="pagination">
+                        <button
+                            className="btn-light small"
+                            disabled={pageClamped <= 1}
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                        >
+                            Poprzednia
+                        </button>
+                        <span className="pagination-info">
+                            Strona {pageClamped} / {totalPages}
+                        </span>
+                        <button
+                            className="btn-light small"
+                            disabled={pageClamped >= totalPages}
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        >
+                            Następna
+                        </button>
                     </div>
                 </section>
             </main>

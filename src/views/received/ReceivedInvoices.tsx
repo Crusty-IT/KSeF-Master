@@ -1,50 +1,60 @@
+// src/views/received/ReceivedInvoices.tsx
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import './ReceivedInvoices.css';
 import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
-import { listReceived, downloadInvoicePdf, type Invoice, type ListInvoicesParams, type UpoStatus, type GeneratePdfRequest } from '../../services/ksefApi';
+import InvoiceFilters from '../../components/filters/InvoiceFilters';
+import FraudBadge from '../../components/alerts/FraudBadge';
+import { listReceived, downloadInvoicePdf, type Invoice, type ListInvoicesParams, type GeneratePdfRequest } from '../../services/ksefApi';
+import { useInvoiceFilters } from '../../hooks/useInvoiceFilters';
+import { useFraudDetection } from '../../hooks/useFraudDetection';
 import SideNav from '../../components/layout/SideNav';
 
 export default function ReceivedInvoices() {
-    const [from, setFrom] = useState('');
-    const [to, setTo] = useState('');
-    const [nip, setNip] = useState('');
-    const [status, setStatus] = useState<UpoStatus | ''>('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
     const params: ListInvoicesParams = useMemo(() => ({
-        nip: nip || undefined,
-        status: status || undefined,
-        date: (from || to) ? { from: from || undefined, to: to || undefined } : undefined,
         page,
         pageSize,
-    }), [nip, status, from, to, page, pageSize]);
+    }), [page, pageSize]);
 
     const query = useQuery<Invoice[], Error>({
         queryKey: ['receivedInvoices', params],
         queryFn: () => listReceived(params),
         staleTime: 60_000,
     });
+
     const data: Invoice[] = query.data ?? [];
     const { isLoading, isFetching, error, refetch } = query;
 
-    const filtered = useMemo<Invoice[]>(() => {
-        return data.filter((row: Invoice) => {
-            if (nip && !row.nipKontrahenta.includes(nip)) return false;
-            if (status && row.status !== status) return false;
-            if (from && row.dataWystawienia < from) return false;
-            if (to && row.dataWystawienia > to) return false;
-            return true;
-        });
-    }, [data, nip, status, from, to]);
+    const {
+        filters,
+        setFilters,
+        resetFilters,
+        filteredInvoices,
+        selection,
+        toggleSelection,
+        toggleSelectAll,
+        selectedCount,
+    } = useInvoiceFilters(data);
 
-    const total = filtered.length;
+    const { results: fraudResults, summary: fraudSummary, refresh: refreshFraud } = useFraudDetection(filteredInvoices);
+
+    const finalFilteredInvoices = useMemo(() => {
+        if (!filters.showOnlySuspicious) return filteredInvoices;
+        return filteredInvoices.filter(inv => {
+            const result = fraudResults.get(inv.numerKsef);
+            return result && result.alertLevel !== 'none';
+        });
+    }, [filteredInvoices, filters.showOnlySuspicious, fraudResults]);
+
+    const total = finalFilteredInvoices.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const pageClamped = Math.min(page, totalPages);
-    const paged = filtered.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
+    const paged = finalFilteredInvoices.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
 
     const errorMessage = error
         ? 'Nie udało się pobrać faktur. Sprawdź, czy serwer backendu jest uruchomiony.'
@@ -71,7 +81,7 @@ export default function ReceivedInvoices() {
                     address: '',
                 },
                 buyer: {
-                    nip: '', // Dla odebranych - my jesteśmy nabywcą
+                    nip: '',
                     name: '',
                     address: '',
                 },
@@ -83,9 +93,9 @@ export default function ReceivedInvoices() {
             };
 
             await downloadInvoicePdf(request);
-        } catch (error) {
-            console.error('Błąd pobierania PDF:', error);
-            alert(error instanceof Error ? error.message : 'Nie udało się pobrać PDF');
+        } catch (err) {
+            console.error('Błąd pobierania PDF:', err);
+            alert(err instanceof Error ? err.message : 'Nie udało się pobrać PDF');
         } finally {
             setDownloadingPdf(null);
         }
@@ -101,30 +111,56 @@ export default function ReceivedInvoices() {
                     <p className="subtitle">Lista dokumentów odebranych w KSeF</p>
                 </header>
 
+                {fraudSummary.total > 0 && (
+                    <div className="alert-summary">
+                        <span className="alert-summary-icon">🚨</span>
+                        <span className="alert-summary-text">
+                            Wykryto <strong>{fraudSummary.total}</strong> podejrzanych faktur
+                            {fraudSummary.high > 0 && <span className="alert-count high"> ({fraudSummary.high} wysokich)</span>}
+                            {fraudSummary.medium > 0 && <span className="alert-count medium"> ({fraudSummary.medium} średnich)</span>}
+                        </span>
+                    </div>
+                )}
+
                 <section className="ops-section">
                     <div className="ops-header">
                         <h2>Wyszukaj i filtruj</h2>
                         <div className="ops-actions">
+                            {selectedCount > 0 && (
+                                <span className="selection-count">
+                                    Zaznaczono: {selectedCount}
+                                </span>
+                            )}
                             <PrimaryButton onClick={() => refetch()} disabled={isLoading || isFetching} icon="⟳">
                                 {isLoading || isFetching ? 'Odświeżanie...' : 'Odśwież'}
                             </PrimaryButton>
                         </div>
                     </div>
-                    <div className="filters">
-                        <label>Data od<input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} /></label>
-                        <label>Data do<input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} /></label>
-                        <label>NIP<input type="text" placeholder="np. 5250012312" value={nip} onChange={(e) => { setNip(e.target.value.replace(/\D/g, '').slice(0, 10)); setPage(1); }} /></label>
-                        <label>Status<select value={status} onChange={(e) => { setStatus(e.target.value as UpoStatus | ''); setPage(1); }}>
-                            <option value="">Wszystkie</option>
-                            <option value="accepted">Przyjęta</option>
-                            <option value="pending">W Trakcie</option>
-                            <option value="rejected">Odrzucona</option>
-                        </select></label>
-                        <label>Na stronę<select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                        </select></label>
+
+                    <InvoiceFilters
+                        filters={filters}
+                        onChange={setFilters}
+                        onReset={resetFilters}
+                        showSuspiciousFilter={true}
+                    />
+
+                    <div className="table-controls">
+                        <label className="page-size-label">
+                            Na stronę:
+                            <select
+                                value={pageSize}
+                                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                                className="page-size-select"
+                            >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                        </label>
+                        <span className="results-count">
+                            Wyników: {total}
+                        </span>
                     </div>
 
                     <div className="table-wrap">
@@ -134,62 +170,108 @@ export default function ReceivedInvoices() {
                             <table className="data-table">
                                 <thead>
                                 <tr>
+                                    <th className="checkbox-col">
+                                        <input
+                                            type="checkbox"
+                                            checked={selection.isAllSelected && paged.length > 0}
+                                            onChange={toggleSelectAll}
+                                            title="Zaznacz wszystkie"
+                                        />
+                                    </th>
+                                    <th className="alert-col">Status</th>
                                     <th>Data</th>
                                     <th>Nr KSeF</th>
                                     <th>Nr faktury</th>
                                     <th>NIP sprzedawcy</th>
+                                    <th>Nazwa</th>
                                     <th>Brutto</th>
-                                    <th>Status</th>
                                     <th>PDF</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {paged.length > 0 ? (
-                                    paged.map((row) => (
-                                        <tr key={row.numerKsef}>
-                                            <td>{row.dataWystawienia}</td>
-                                            <td>
-                                                <code style={{
-                                                    fontSize: '11px',
-                                                    background: 'rgba(0,224,150,0.1)',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px',
-                                                    color: '#00e096'
-                                                }}>
-                                                    {row.numerKsef}
-                                                </code>
-                                            </td>
-                                            <td>{row.numerFaktury}</td>
-                                            <td>{row.nipKontrahenta}</td>
-                                            <td>{row.kwotaBrutto.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}</td>
-                                            <td>
-                                                <span className={`status-dot ${row.status}`} aria-label={row.status} />
-                                                <span className="status-text">{row.status === 'accepted' ? 'Przyjęta' : row.status === 'rejected' ? 'Odrzucona' : 'W Trakcie'}</span>
-                                            </td>
-                                            <td>
-                                                <button
-                                                    className="btn-light small"
-                                                    onClick={() => handleDownloadPdf(row)}
-                                                    disabled={downloadingPdf === row.numerKsef || !row.invoiceHash}
-                                                    title={row.invoiceHash ? 'Pobierz PDF z kodem QR' : 'Brak danych do PDF'}
-                                                >
-                                                    {downloadingPdf === row.numerKsef ? '⏳' : row.invoiceHash ? '📄' : '—'}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    paged.map((row) => {
+                                        const fraudResult = fraudResults.get(row.numerKsef);
+                                        return (
+                                            <tr
+                                                key={row.numerKsef}
+                                                className={`
+                                                        ${selection.selectedIds.has(row.numerKsef) ? 'row-selected' : ''}
+                                                        ${fraudResult?.alertLevel === 'high' ? 'row-alert-high' : ''}
+                                                        ${fraudResult?.alertLevel === 'medium' ? 'row-alert-medium' : ''}
+                                                    `}
+                                            >
+                                                <td className="checkbox-col">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selection.selectedIds.has(row.numerKsef)}
+                                                        onChange={() => toggleSelection(row.numerKsef)}
+                                                    />
+                                                </td>
+                                                <td className="alert-col">
+                                                    {fraudResult && (
+                                                        <FraudBadge
+                                                            result={fraudResult}
+                                                            contractorNip={row.nipKontrahenta}
+                                                            onDismiss={refreshFraud}
+                                                        />
+                                                    )}
+                                                </td>
+                                                <td>{row.dataWystawienia}</td>
+                                                <td>
+                                                    <code className="ksef-number">
+                                                        {row.numerKsef}
+                                                    </code>
+                                                </td>
+                                                <td>{row.numerFaktury}</td>
+                                                <td>{row.nipKontrahenta}</td>
+                                                <td className="contractor-name">{row.nazwaKontrahenta || '—'}</td>
+                                                <td className="amount-cell">
+                                                    {row.kwotaBrutto.toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        className="btn-light small"
+                                                        onClick={() => handleDownloadPdf(row)}
+                                                        disabled={downloadingPdf === row.numerKsef || !row.invoiceHash}
+                                                        title={row.invoiceHash ? 'Pobierz PDF z kodem QR' : 'Brak danych do PDF'}
+                                                    >
+                                                        {downloadingPdf === row.numerKsef ? '⏳' : row.invoiceHash ? '📄' : '—'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
-                                    <tr><td colSpan={7} style={{ textAlign: 'center' }}>Brak faktur spełniających kryteria.</td></tr>
+                                    <tr>
+                                        <td colSpan={9} style={{ textAlign: 'center' }}>
+                                            Brak faktur spełniających kryteria.
+                                        </td>
+                                    </tr>
                                 )}
                                 </tbody>
                             </table>
                         )}
                     </div>
 
-                    <div className="pagination" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-                        <button className="btn-light small" disabled={pageClamped <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Poprzednia</button>
-                        <span style={{ alignSelf: 'center', color: 'var(--muted)' }}>Strona {pageClamped} / {totalPages}</span>
-                        <button className="btn-light small" disabled={pageClamped >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Następna</button>
+                    <div className="pagination">
+                        <button
+                            className="btn-light small"
+                            disabled={pageClamped <= 1}
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                        >
+                            Poprzednia
+                        </button>
+                        <span className="pagination-info">
+                            Strona {pageClamped} / {totalPages}
+                        </span>
+                        <button
+                            className="btn-light small"
+                            disabled={pageClamped >= totalPages}
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        >
+                            Następna
+                        </button>
                     </div>
                 </section>
             </main>

@@ -2,11 +2,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useServerHealth } from '../../hooks/useServerHealth';
+import ServerStartup from '../../components/startup/ServerStartup';
 import './StartView.css';
 
 export default function StartView() {
     const navigate = useNavigate();
     const { login, isLoading, error: authError, isAuthenticated } = useAuth();
+    const { status: serverStatus, retryCount, maxRetries } = useServerHealth(true);
 
     const [nip, setNip] = useState('');
     const [ksefToken, setKsefToken] = useState('');
@@ -17,7 +20,6 @@ export default function StartView() {
     const nipValid = /^\d{10}$/.test(nipDigits);
     const tokenValid = ksefToken.includes('|') && ksefToken.length > 20;
 
-    // Jeśli już zalogowany, przekieruj - W useEffect!
     useEffect(() => {
         if (isAuthenticated) {
             navigate('/dashboard', { replace: true });
@@ -49,9 +51,20 @@ export default function StartView() {
 
     const displayError = localError || authError;
 
-    // Jeśli zalogowany, nie renderuj formularza (useEffect przekieruje)
     if (isAuthenticated) {
         return null;
+    }
+
+    if (serverStatus === 'checking' || serverStatus === 'offline' || serverStatus === 'error') {
+        if (serverStatus !== 'checking' || retryCount > 0) {
+            return (
+                <ServerStartup
+                    status={serverStatus === 'checking' ? 'checking' : serverStatus}
+                    retryCount={retryCount}
+                    maxRetries={maxRetries}
+                />
+            );
+        }
     }
 
     return (
@@ -65,7 +78,6 @@ export default function StartView() {
                 <section className="login-module" aria-labelledby="login-options">
                     <h2 id="login-options" className="sr-only">Logowanie tokenem KSeF</h2>
 
-                    {/* Komunikat o błędzie */}
                     {displayError && (
                         <div className="error-banner" style={{
                             background: 'rgba(239, 68, 68, 0.1)',
@@ -80,7 +92,6 @@ export default function StartView() {
                         </div>
                     )}
 
-                    {/* Krok 1: NIP */}
                     <form className="nip-form" aria-label="Identyfikacja podmiotu" onSubmit={(e) => e.preventDefault()}>
                         <label htmlFor="nip" className="nip-label">
                             NIP Podatnika
@@ -105,7 +116,6 @@ export default function StartView() {
                         </p>
                     </form>
 
-                    {/* Krok 2: Token KSeF */}
                     <form className="token-form" aria-label="Logowanie tokenem" onSubmit={(e) => {
                         e.preventDefault();
                         handleLogin();
@@ -153,7 +163,6 @@ export default function StartView() {
                         </button>
                     </form>
 
-                    {/* Instrukcja */}
                     <div style={{
                         marginTop: '24px',
                         padding: '16px',

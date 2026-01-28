@@ -11,7 +11,6 @@ export default function Dashboard() {
     const { isAuthenticated, nip } = useAuth();
     const navigate = useNavigate();
 
-    // Pobierz faktury odebrane (Subject2)
     const { data: receivedData, isLoading, isFetching, error, refetch } = useQuery({
         queryKey: ['receivedInvoices', nip],
         queryFn: async () => {
@@ -38,20 +37,18 @@ export default function Dashboard() {
         staleTime: 60_000,
     });
 
-    const invoices: InvoiceMetadata[] = receivedData || [];
+    const invoices: InvoiceMetadata[] = useMemo(() => receivedData || [], [receivedData]);
 
     const errorMessage = error
         ? (error as Error).message || 'Nie udało się pobrać faktur.'
         : null;
 
-    // KPI
     const stats = useMemo(() => {
         const total = invoices.length;
         const totalGross = invoices.reduce((sum, inv) => sum + (inv.grossAmount || 0), 0);
         return { total, totalGross };
     }, [invoices]);
 
-    // Wykres (mock data - w prawdziwej aplikacji pobierane z backendu)
     const chartDays = Array.from({ length: 14 }).map((_, i) => ({
         day: i + 1,
         issued: Math.round(10 + 20 * Math.sin(i / 2) + (i % 3) * 3),
@@ -74,7 +71,6 @@ export default function Dashboard() {
                     </p>
                 </header>
 
-                {/* Komunikat o braku logowania */}
                 {!isAuthenticated && (
                     <div className="alert-box warning">
                         <span className="alert-icon">⚠️</span>
@@ -93,7 +89,6 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Sekcja KPI - nowy layout */}
                 <section className="kpi-grid" aria-label="Szybka analiza">
                     <div className="kpi-card">
                         <div className="kpi-title">Faktury odebrane (ostatni miesiąc)</div>
@@ -127,7 +122,6 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {/* Tabela faktur - NOWY UKŁAD */}
                 <section className="ops-section">
                     <div className="section-header-centered">
                         <h2>Ostatnio Odebrane Dokumenty KSeF</h2>
@@ -188,7 +182,6 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {/* Szybkie Działania */}
                 <section className="future-section">
                     <h2>Szybkie Działania</h2>
                     <div className="future-grid">

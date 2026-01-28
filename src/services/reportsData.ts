@@ -1,4 +1,5 @@
 // src/services/reportsData.ts
+import type { Invoice } from './ksefApi';
 
 export type DocKind = 'issued' | 'received';
 
@@ -37,17 +38,15 @@ export function clearAllReports() {
 
 export function addReport(report: ReportInvoice) {
     const existing = getAllReports();
-    // Unikaj duplikatów po numerze
     if (!existing.find(r => r.number === report.number)) {
         existing.unshift(report);
         replaceAllReports(existing);
     }
 }
 
-export function syncFromKsefData(issuedInvoices: any[], receivedInvoices: any[]) {
+export function syncFromKsefData(issuedInvoices: Invoice[], receivedInvoices: Invoice[]) {
     const reports: ReportInvoice[] = [];
 
-    // Konwertuj wystawione
     for (const inv of issuedInvoices) {
         const gross = inv.kwotaBrutto || 0;
         const net = inv.kwotaNetto || Math.round((gross / 1.23) * 100) / 100;
@@ -67,7 +66,6 @@ export function syncFromKsefData(issuedInvoices: any[], receivedInvoices: any[])
         });
     }
 
-    // Konwertuj odebrane
     for (const inv of receivedInvoices) {
         const gross = inv.kwotaBrutto || 0;
         const net = inv.kwotaNetto || Math.round((gross / 1.23) * 100) / 100;
@@ -87,7 +85,6 @@ export function syncFromKsefData(issuedInvoices: any[], receivedInvoices: any[])
         });
     }
 
-    // Sortuj po dacie (najnowsze pierwsze)
     reports.sort((a, b) => b.issueDate.localeCompare(a.issueDate));
 
     replaceAllReports(reports);
