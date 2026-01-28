@@ -1149,8 +1149,7 @@ export default function NewInvoice() {
                                 </a>
                             </p>
                             <p className="note">
-                                To jest podgląd faktury. Po wysłaniu do KSeF dokument otrzyma
-                                oficjalny numer i kod QR.
+                                To jest podgląd faktury. Po wysłaniu do KSeF dokument otrzyma oficjalny numer i kod QR.
                             </p>
                         </div>
                     </div>
