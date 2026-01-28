@@ -1,0 +1,79 @@
+/* src/components/layout/TopBar.css */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: rgba(23, 23, 33, 0.8);
+    border-bottom: 1px solid #2d2d3d;
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+}
+
+.top-bar-spacer {
+    flex: 1;
+}
+
+.top-bar-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-indicator.online {
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.status-indicator.offline {
+    background: #6b7280;
+}
+
+.status-text {
+    font-size: 13px;
+    color: #a7b1c2;
+}
+
+.status-text strong {
+    color: #e7eaf3;
+    font-weight: 600;
+}
+
+.top-bar-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.top-bar-btn.logout {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.top-bar-btn.logout:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.top-bar-btn.login {
+    background: rgba(59, 130, 246, 0.1);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.top-bar-btn.login:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
