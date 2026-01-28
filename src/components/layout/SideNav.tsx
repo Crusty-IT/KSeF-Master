@@ -1,6 +1,6 @@
 // src/components/layout/SideNav.tsx
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../context/AuthContext';
 import './SideNav.css';
 
 export default function SideNav() {
