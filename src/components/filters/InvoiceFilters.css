@@ -78,6 +78,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
+    align-items: end;
 }
 
 .filter-group {
@@ -119,9 +120,10 @@
 }
 
 .filter-group-checkbox {
-    display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: flex-start;
+    min-height: 38px;
 }
 
 .filter-checkbox-label {
@@ -133,21 +135,38 @@
     font-size: 13px;
     color: #a7b1c2;
     user-select: none;
+    height: 38px;
+    padding: 0 12px;
+    background: rgba(245, 158, 11, 0.05);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.filter-checkbox-label:hover {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
 }
 
 .filter-checkbox-label input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    accent-color: #3b82f6;
+    accent-color: #f59e0b;
     cursor: pointer;
     flex-shrink: 0;
     margin: 0;
+}
+
+.filter-checkbox-label input[type="checkbox"]:checked + span {
+    color: #fcd34d;
 }
 
 .filter-suspicious-icon {
     font-size: 14px;
     flex-shrink: 0;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
 }
 
 @media (max-width: 768px) {
