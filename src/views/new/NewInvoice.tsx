@@ -236,15 +236,6 @@ export default function NewInvoice() {
     }, [sessionNip, draft.seller.nip]);
 
     useEffect(() => {
-        if (draft.seller.bankAccount && !draft.payment.bankAccount) {
-            setDraft(prev => ({
-                ...prev,
-                payment: { ...prev.payment, bankAccount: prev.seller.bankAccount },
-            }));
-        }
-    }, [draft.seller.bankAccount, draft.payment.bankAccount]);
-
-    useEffect(() => {
         if (!mountedRef.current) {
             mountedRef.current = true;
             return;
@@ -254,7 +245,6 @@ export default function NewInvoice() {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
                 localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
             } catch {
-                /* ignore */
             }
         }, 1000);
         return () => clearTimeout(t);
@@ -411,15 +401,6 @@ export default function NewInvoice() {
         setErrors([]);
     }
 
-    function copyBankFromSeller() {
-        if (draft.seller.bankAccount) {
-            setDraft(prev => ({
-                ...prev,
-                payment: { ...prev.payment, bankAccount: prev.seller.bankAccount },
-            }));
-        }
-    }
-
     function handlePrint() {
         const errs = validate();
         setErrors(errs);
@@ -477,8 +458,6 @@ export default function NewInvoice() {
 
             const sendResponse = await sendInvoice(invoiceRequest);
 
-            console.log('Odpowiedź z KSeF:', JSON.stringify(sendResponse, null, 2));
-
             if (!sendResponse.success) {
                 throw new Error(sendResponse.error || 'Nie udało się wysłać faktury');
             }
@@ -519,7 +498,7 @@ export default function NewInvoice() {
                 issuePlace: draft.place,
                 sellerName: draft.seller.name,
                 sellerAddress: draft.seller.address,
-                sellerBankAccount: draft.seller.bankAccount,
+                sellerBankAccount: draft.payment.bankAccount,
                 buyerAddress: draft.buyer.address,
                 items: itemsWithValues,
                 totals: {
@@ -592,9 +571,7 @@ export default function NewInvoice() {
                                     onClick={handleSendToKsef}
                                     icon="📤"
                                     disabled={isSending || !isAuthenticated}
-                                    title={
-                                        !isAuthenticated ? 'Zaloguj się do KSeF, aby wysłać fakturę' : undefined
-                                    }
+                                    title={!isAuthenticated ? 'Zaloguj się do KSeF, aby wysłać fakturę' : undefined}
                                 >
                                     {isSending ? 'Wysyłanie...' : 'Wyślij do KSeF'}
                                 </PrimaryButton>
@@ -614,7 +591,6 @@ export default function NewInvoice() {
                         )}
                         {errorBlock}
 
-                        {/* Dane dokumentu */}
                         <div className="card">
                             <div className="field-row">
                                 <label>
@@ -626,9 +602,7 @@ export default function NewInvoice() {
                                     <input
                                         type="text"
                                         value={draft.number}
-                                        onChange={e =>
-                                            setDraft(prev => ({ ...prev, number: e.target.value }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, number: e.target.value }))}
                                     />
                                 </label>
                                 <label>
@@ -636,9 +610,7 @@ export default function NewInvoice() {
                                     <input
                                         type="text"
                                         value={draft.place}
-                                        onChange={e =>
-                                            setDraft(prev => ({ ...prev, place: e.target.value }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, place: e.target.value }))}
                                     />
                                 </label>
                             </div>
@@ -648,9 +620,7 @@ export default function NewInvoice() {
                                     <input
                                         type="date"
                                         value={draft.issueDate}
-                                        onChange={e =>
-                                            setDraft(prev => ({ ...prev, issueDate: e.target.value }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, issueDate: e.target.value }))}
                                     />
                                 </label>
                                 <label>
@@ -658,21 +628,14 @@ export default function NewInvoice() {
                                     <input
                                         type="date"
                                         value={draft.sellDate}
-                                        onChange={e =>
-                                            setDraft(prev => ({ ...prev, sellDate: e.target.value }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, sellDate: e.target.value }))}
                                     />
                                 </label>
                                 <label>
                                     Waluta
                                     <select
                                         value={draft.currency}
-                                        onChange={e =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                currency: e.target.value as 'PLN',
-                                            }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, currency: e.target.value as 'PLN' }))}
                                     >
                                         <option value="PLN">PLN</option>
                                     </select>
@@ -680,60 +643,33 @@ export default function NewInvoice() {
                             </div>
                         </div>
 
-                        {/* Strony */}
                         <div className="two-col">
                             <div className="card">
                                 <h3>Sprzedawca</h3>
-
                                 <div className="seller-nip-box">
                                     <span className="seller-nip-label">NIP Sprzedawcy (z sesji KSeF)</span>
                                     <span className="seller-nip-value">
-                    {draft.seller.nip || 'Zaloguj się do KSeF'}
-                  </span>
+                                        {draft.seller.nip || 'Zaloguj się do KSeF'}
+                                    </span>
                                 </div>
-
                                 <label>
                                     Nazwa firmy *
                                     <input
                                         type="text"
                                         value={draft.seller.name}
-                                        onChange={e =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                seller: { ...prev.seller, name: e.target.value },
-                                            }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, seller: { ...prev.seller, name: e.target.value } }))}
                                         placeholder="Nazwa sprzedawcy"
                                     />
                                 </label>
-
                                 <label>
                                     Adres *
                                     <input
                                         type="text"
                                         value={draft.seller.address}
-                                        onChange={e =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                seller: { ...prev.seller, address: e.target.value },
-                                            }))
-                                        }
+                                        onChange={e => setDraft(prev => ({ ...prev, seller: { ...prev.seller, address: e.target.value } }))}
                                         placeholder="Ulica, numer, kod pocztowy, miasto"
                                     />
                                 </label>
-
-                                <div style={{ marginTop: '12px' }}>
-                                    <BankAccountInput
-                                        label="Rachunek bankowy"
-                                        value={draft.seller.bankAccount || ''}
-                                        onChange={v =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                seller: { ...prev.seller, bankAccount: v },
-                                            }))
-                                        }
-                                    />
-                                </div>
                             </div>
 
                             <div className="card">
@@ -742,7 +678,6 @@ export default function NewInvoice() {
                             </div>
                         </div>
 
-                        {/* Pozycje faktury */}
                         <div className="card">
                             <h3>Pozycje faktury</h3>
                             <div className="table-wrap">
@@ -756,15 +691,9 @@ export default function NewInvoice() {
                                         <th style={{ width: '10%' }}>Cena netto</th>
                                         <th style={{ width: '8%' }}>VAT</th>
                                         <th style={{ width: '7%' }}>Rabat %</th>
-                                        <th className="text-right" style={{ width: '10%' }}>
-                                            Netto
-                                        </th>
-                                        <th className="text-right" style={{ width: '10%' }}>
-                                            VAT
-                                        </th>
-                                        <th className="text-right" style={{ width: '10%' }}>
-                                            Brutto
-                                        </th>
+                                        <th className="text-right" style={{ width: '10%' }}>Netto</th>
+                                        <th className="text-right" style={{ width: '10%' }}>VAT</th>
+                                        <th className="text-right" style={{ width: '10%' }}>Brutto</th>
                                         <th style={{ width: '5%' }}></th>
                                     </tr>
                                     </thead>
@@ -782,9 +711,7 @@ export default function NewInvoice() {
                                                     <input
                                                         type="text"
                                                         value={l.name}
-                                                        onChange={e =>
-                                                            updateLine(idx, { name: e.target.value })
-                                                        }
+                                                        onChange={e => updateLine(idx, { name: e.target.value })}
                                                         placeholder="Nazwa towaru/usługi"
                                                     />
                                                 </td>
@@ -792,9 +719,7 @@ export default function NewInvoice() {
                                                     <input
                                                         type="text"
                                                         value={l.pkwiu || ''}
-                                                        onChange={e =>
-                                                            updateLine(idx, { pkwiu: e.target.value })
-                                                        }
+                                                        onChange={e => updateLine(idx, { pkwiu: e.target.value })}
                                                         placeholder="opcjonalnie"
                                                     />
                                                 </td>
@@ -809,17 +734,13 @@ export default function NewInvoice() {
                                                     <input
                                                         type="text"
                                                         value={l.unit}
-                                                        onChange={e =>
-                                                            updateLine(idx, { unit: e.target.value })
-                                                        }
+                                                        onChange={e => updateLine(idx, { unit: e.target.value })}
                                                     />
                                                 </td>
                                                 <td>
                                                     <CurrencyInput
                                                         value={l.priceNet}
-                                                        onChange={v =>
-                                                            updateLine(idx, { priceNet: v ?? 0 })
-                                                        }
+                                                        onChange={v => updateLine(idx, { priceNet: v ?? 0 })}
                                                     />
                                                 </td>
                                                 <td>
@@ -835,15 +756,9 @@ export default function NewInvoice() {
                                                         min={0}
                                                     />
                                                 </td>
-                                                <td className="text-right">
-                                                    {formatPLN(res.net)}
-                                                </td>
-                                                <td className="text-right">
-                                                    {formatPLN(res.vat)}
-                                                </td>
-                                                <td className="text-right">
-                                                    {formatPLN(res.gross)}
-                                                </td>
+                                                <td className="text-right">{formatPLN(res.net)}</td>
+                                                <td className="text-right">{formatPLN(res.vat)}</td>
+                                                <td className="text-right">{formatPLN(res.gross)}</td>
                                                 <td>
                                                     <button
                                                         className="btn-light small danger"
@@ -870,19 +785,12 @@ export default function NewInvoice() {
                             </div>
 
                             <div className="summary-bar">
-                <span>
-                  Netto: <strong>{formatPLN(totals.net)}</strong>
-                </span>
-                                <span>
-                  VAT: <strong>{formatPLN(totals.vat)}</strong>
-                </span>
-                                <span>
-                  Brutto: <strong>{formatPLN(totals.gross)}</strong>
-                </span>
+                                <span>Netto: <strong>{formatPLN(totals.net)}</strong></span>
+                                <span>VAT: <strong>{formatPLN(totals.vat)}</strong></span>
+                                <span>Brutto: <strong>{formatPLN(totals.gross)}</strong></span>
                             </div>
                         </div>
 
-                        {/* Płatność */}
                         <div className="card">
                             <h3>Płatność</h3>
                             <div className="field-row">
@@ -890,15 +798,10 @@ export default function NewInvoice() {
                                     Metoda płatności
                                     <select
                                         value={draft.payment.method}
-                                        onChange={e =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                payment: {
-                                                    ...prev.payment,
-                                                    method: e.target.value as InvoiceDraft['payment']['method'],
-                                                },
-                                            }))
-                                        }
+                                        onChange={e => setDraft(prev => ({
+                                            ...prev,
+                                            payment: { ...prev.payment, method: e.target.value as 'przelew' | 'gotówka' },
+                                        }))}
                                     >
                                         <option value="przelew">przelew</option>
                                         <option value="gotówka">gotówka</option>
@@ -908,12 +811,10 @@ export default function NewInvoice() {
                                     Termin (dni)
                                     <NumberInput
                                         value={draft.payment.dueDays}
-                                        onChange={v =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                payment: { ...prev.payment, dueDays: v ?? 0 },
-                                            }))
-                                        }
+                                        onChange={v => setDraft(prev => ({
+                                            ...prev,
+                                            payment: { ...prev.payment, dueDays: v ?? 0 },
+                                        }))}
                                         min={0}
                                     />
                                 </label>
@@ -922,50 +823,33 @@ export default function NewInvoice() {
                                     <input
                                         type="date"
                                         value={draft.payment.dueDate}
-                                        onChange={e =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                payment: { ...prev.payment, dueDate: e.target.value },
-                                            }))
-                                        }
+                                        onChange={e => setDraft(prev => ({
+                                            ...prev,
+                                            payment: { ...prev.payment, dueDate: e.target.value },
+                                        }))}
                                     />
                                 </label>
                             </div>
-
                             {draft.payment.method === 'przelew' && (
                                 <div className="bank-account-section">
                                     <BankAccountInput
                                         label="Rachunek bankowy do płatności"
                                         value={draft.payment.bankAccount || ''}
-                                        onChange={v =>
-                                            setDraft(prev => ({
-                                                ...prev,
-                                                payment: { ...prev.payment, bankAccount: v },
-                                            }))
-                                        }
+                                        onChange={v => setDraft(prev => ({
+                                            ...prev,
+                                            payment: { ...prev.payment, bankAccount: v },
+                                        }))}
                                         required
                                     />
-                                    {draft.seller.bankAccount &&
-                                        draft.payment.bankAccount !== draft.seller.bankAccount && (
-                                            <button
-                                                type="button"
-                                                className="btn-link copy-bank-btn"
-                                                onClick={copyBankFromSeller}
-                                            >
-                                                📋 Użyj rachunku z profilu sprzedawcy
-                                            </button>
-                                        )}
                                 </div>
                             )}
                         </div>
                     </section>
                 </div>
 
-                {/* Sekcja tylko do druku - poza dash-content */}
                 <section className="print-only">
                     <div className="print-invoice">
                         <div className="print-content">
-                            {/* Nagłówek */}
                             <div className="print-header">
                                 <div className="print-header-left">
                                     <h2>Krajowy System e-Faktur</h2>
@@ -980,7 +864,6 @@ export default function NewInvoice() {
 
                             <hr className="print-hr" />
 
-                            {/* Strony */}
                             <div className="print-parties">
                                 <div className="print-party">
                                     <h3>Sprzedawca</h3>
@@ -989,9 +872,6 @@ export default function NewInvoice() {
                                     <p className="label">Adres</p>
                                     <p>{draft.seller.address}</p>
                                     <p>Polska</p>
-                                    {draft.seller.bankAccount && (
-                                        <p>Rachunek: {draft.seller.bankAccount}</p>
-                                    )}
                                 </div>
                                 <div className="print-party">
                                     <h3>Nabywca</h3>
@@ -1005,35 +885,22 @@ export default function NewInvoice() {
 
                             <hr className="print-hr" />
 
-                            {/* Szczegóły */}
                             <div className="print-details">
                                 <h3>Szczegóły</h3>
                                 <div className="print-details-row">
-                  <span>
-                    <span className="label">Data wystawienia: </span>
-                      {draft.issueDate}
-                  </span>
-                                    <span>
-                    <span className="label">Miejsce wystawienia: </span>
-                                        {draft.place}
-                  </span>
+                                    <span><span className="label">Data wystawienia: </span>{draft.issueDate}</span>
+                                    <span><span className="label">Miejsce wystawienia: </span>{draft.place}</span>
                                 </div>
                                 <div className="print-details-row">
-                  <span>
-                    <span className="label">Data sprzedaży: </span>
-                      {draft.sellDate}
-                  </span>
+                                    <span><span className="label">Data sprzedaży: </span>{draft.sellDate}</span>
                                 </div>
                             </div>
 
                             <hr className="print-hr" />
 
-                            {/* Pozycje */}
                             <div className="print-items">
                                 <h3>Pozycje</h3>
-                                <p className="subtitle">
-                                    Faktura wystawiona w cenach netto w walucie PLN
-                                </p>
+                                <p className="subtitle">Faktura wystawiona w cenach netto w walucie PLN</p>
                                 <table className="print-table">
                                     <thead>
                                     <tr>
@@ -1058,19 +925,11 @@ export default function NewInvoice() {
                                             <tr key={i}>
                                                 <td>{i + 1}</td>
                                                 <td>{l.name}</td>
-                                                <td className="text-right">
-                                                    {formatPLN(l.priceNet)}
-                                                </td>
+                                                <td className="text-right">{formatPLN(l.priceNet)}</td>
                                                 <td className="text-right">{l.qty}</td>
                                                 <td>{l.unit}</td>
-                                                <td>
-                                                    {typeof l.vatRate === 'number'
-                                                        ? `${l.vatRate}%`
-                                                        : l.vatRate}
-                                                </td>
-                                                <td className="text-right">
-                                                    {formatPLN(r.net)}
-                                                </td>
+                                                <td>{typeof l.vatRate === 'number' ? `${l.vatRate}%` : l.vatRate}</td>
+                                                <td className="text-right">{formatPLN(r.net)}</td>
                                             </tr>
                                         );
                                     })}
@@ -1084,7 +943,6 @@ export default function NewInvoice() {
 
                             <hr className="print-hr" />
 
-                            {/* Podsumowanie VAT */}
                             <div className="print-vat-summary">
                                 <h3>Podsumowanie stawek podatku</h3>
                                 <table className="print-vat-table">
@@ -1102,15 +960,9 @@ export default function NewInvoice() {
                                         <tr key={rate}>
                                             <td>{i + 1}</td>
                                             <td>{rate}</td>
-                                            <td className="text-right">
-                                                {formatPLN(perRate[rate].net)}
-                                            </td>
-                                            <td className="text-right">
-                                                {formatPLN(perRate[rate].vat)}
-                                            </td>
-                                            <td className="text-right">
-                                                {formatPLN(perRate[rate].gross)}
-                                            </td>
+                                            <td className="text-right">{formatPLN(perRate[rate].net)}</td>
+                                            <td className="text-right">{formatPLN(perRate[rate].vat)}</td>
+                                            <td className="text-right">{formatPLN(perRate[rate].gross)}</td>
                                         </tr>
                                     ))}
                                     </tbody>
@@ -1119,38 +971,21 @@ export default function NewInvoice() {
 
                             <hr className="print-hr" />
 
-                            {/* Płatność */}
                             <div className="print-payment">
                                 <h3>Płatność</h3>
                                 <div className="print-payment-row">
-                  <span>
-                    <span className="label">Metoda płatności: </span>
-                      {draft.payment.method}
-                  </span>
-                                    <span>
-                    <span className="label">Termin płatności: </span>
-                                        {draft.payment.dueDate}
-                  </span>
+                                    <span><span className="label">Metoda płatności: </span>{draft.payment.method}</span>
+                                    <span><span className="label">Termin płatności: </span>{draft.payment.dueDate}</span>
                                 </div>
                                 {draft.payment.bankAccount && (
-                                    <p>
-                                        <span className="label">Rachunek bankowy: </span>
-                                        {draft.payment.bankAccount}
-                                    </p>
+                                    <p><span className="label">Rachunek bankowy: </span>{draft.payment.bankAccount}</p>
                                 )}
                             </div>
                         </div>
 
                         <div className="print-footer">
-                            <p>
-                                Wytworzona w{' '}
-                                <a href="https://ksef-master.netlify.app/">
-                                    <strong>KSeF Master</strong>
-                                </a>
-                            </p>
-                            <p className="note">
-                                To jest podgląd faktury. Po wysłaniu do KSeF dokument otrzyma oficjalny numer i kod QR.
-                            </p>
+                            <p>Wytworzona w <a href="https://ksef-master.netlify.app/"><strong>KSeF Master</strong></a></p>
+                            <p className="note">To jest podgląd faktury. Po wysłaniu do KSeF dokument otrzyma oficjalny numer i kod QR.</p>
                         </div>
                     </div>
                 </section>
