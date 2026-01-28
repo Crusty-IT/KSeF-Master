@@ -600,8 +600,8 @@ label input[readonly] {
         bottom: 0;
         left: 0;
         right: 0;
-        padding: 8px 10mm;
-        border-top: 1px solid #999;
+        padding: 4px 10mm;           /* mniej pionowego paddingu */
+        border-top: 0.3pt solid #ccc; /* cieńsza, jaśniejsza linia */
         background: white;
         text-align: center;
     }
@@ -609,7 +609,7 @@ label input[readonly] {
     .print-footer p {
         font-size: 7pt;
         color: #555;
-        margin: 2px 0;
+        margin: 1px 0;
     }
 
     .print-footer .note {
