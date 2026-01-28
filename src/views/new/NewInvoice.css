@@ -601,7 +601,7 @@ label input[readonly] {
         left: 0;
         right: 0;
         padding: 4px 10mm;
-        border-top: 0.1pt solid #ccc;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
         background: white;
         text-align: center;
     }
