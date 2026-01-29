@@ -409,7 +409,6 @@ export default function NewInvoice() {
     }
 
     async function handleSendToKsef() {
-        const { isAuthenticated } = useAuth();
         if (!isAuthenticated) {
             setErrors(['Musisz być zalogowany do KSeF, aby wysłać fakturę.']);
             return;
