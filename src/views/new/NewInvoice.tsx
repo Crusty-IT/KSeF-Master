@@ -63,6 +63,7 @@ function saveSentInvoice(record: SentInvoiceRecord) {
         const trimmed = existing.slice(0, 100);
         localStorage.setItem(SENT_INVOICES_KEY, JSON.stringify(trimmed));
     } catch {
+        // Ignoruj błędy localStorage - zapis historii nie jest krytyczny
     }
 }
 
@@ -163,6 +164,7 @@ function loadSellerFromStorage(sessionNip?: string | null): Party {
             };
         }
     } catch {
+        // Ignoruj błędy parsowania - zwrócimy domyślnego sprzedawcę
     }
     return { ...emptyParty, nip: sessionNip || '' };
 }
@@ -245,6 +247,7 @@ export default function NewInvoice() {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
                 localStorage.setItem(SELLER_KEY, JSON.stringify(draft.seller));
             } catch {
+                // Ignoruj błędy localStorage - auto-zapis nie jest krytyczny
             }
         }, 1000);
         return () => clearTimeout(t);
@@ -375,6 +378,9 @@ export default function NewInvoice() {
             setInfo('Szkic zapisany lokalnie.');
             setTimeout(() => setInfo(null), 2000);
         } catch {
+            // Ignoruj błędy localStorage - wyświetl info o błędzie zamiast
+            setInfo('Nie udało się zapisać szkicu.');
+            setTimeout(() => setInfo(null), 2000);
         }
     }
 

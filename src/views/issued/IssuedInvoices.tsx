@@ -134,7 +134,14 @@ export default function IssuedInvoices() {
                         bankAccount: localData.paymentBankAccount,
                     },
                 };
+
+                console.log('=== PDF REQUEST ===');
+                console.log('localData.items:', localData.items);
+                console.log('request.items:', request.items);
+                console.log('Full request:', JSON.stringify(request, null, 2));
+
                 await downloadInvoicePdf(request);
+
             } else if (invoice.invoiceHash) {
                 const request: GeneratePdfRequest = {
                     source: 'local',
