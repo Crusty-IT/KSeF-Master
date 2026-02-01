@@ -979,7 +979,7 @@ export default function NewInvoice() {
 
                             <div className="print-payment">
                                 <h3>Płatność</h3>
-                                <div className="print-payment-row">
+                                <div className="print-pay ment-row">
                                     <span><span className="label">Metoda płatności: </span>{draft.payment.method}</span>
                                     <span><span className="label">Termin płatności: </span>{draft.payment.dueDate}</span>
                                 </div>
