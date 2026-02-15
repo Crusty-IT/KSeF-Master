@@ -37,7 +37,7 @@ export default function SideNav() {
                             KSeF Master
                             <a className="brand-icon-link" aria-label="Ikona KSeF Master">
                                 <img
-                                    src="https://raw.githubusercontent.com/Crusty-IT/KSeF-Master/main/public/ico.svg"
+                                    src="https://raw.githubusercontent.com/shellty-IT/KSeF-Master/main/public/ico.svg"
                                     alt="Ikona"
                                     className="brand-icon"
                                 />
