@@ -214,7 +214,7 @@
 }
 
 .footer-logo {
-    height: 77px;
+    height: 32px;
     width: auto;
     opacity: 0.75;
     transition: all 0.25s ease;
@@ -260,14 +260,10 @@
     }
 
     .side-nav-footer {
-        height: 18px;
         padding: 14px 16px;
         gap: 8px;
     }
 
-    .footer-logo {
-        height: 18px;
-    }
 
     .footer-copyright {
         font-size: 10px;
