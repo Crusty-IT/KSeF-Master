@@ -109,7 +109,7 @@ export default function SideNav() {
                         © 2025 KSeF Master
                         <span className="footer-icon-wrapper" aria-hidden="true">
                             <img
-                                src="https://raw.githubusercontent.com/Crusty-IT/KSeF-Master/main/public/ico.svg"
+                                src="https://raw.githubusercontent.com/shellty-IT/KSeF-Master/main/public/ico.svg"
                                 alt=""
                                 className="footer-icon"
                             />
