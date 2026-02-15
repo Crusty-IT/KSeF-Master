@@ -100,7 +100,7 @@ export default function SideNav() {
                         aria-label="Strona wykonana przez Crusty IT"
                     >
                         <img
-                            src="https://shellty-it.github.io/favicon.ico"
+                            src="https://shellty-it.github.io/favicon-32x32.png"
                             alt="Shellty"
                             className="footer-logo"
                         />
