@@ -93,15 +93,15 @@ export default function SideNav() {
             {!isCollapsed && (
                 <footer className="side-nav-footer">
                     <a
-                        href="https://crusty-it.github.io/"
+                        href="https://shellty-it.github.io/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="footer-logo-link"
                         aria-label="Strona wykonana przez Crusty IT"
                     >
                         <img
-                            src="https://raw.githubusercontent.com/shellupski/Moja-strona/main/images/logo_horizontaly.svg"
-                            alt="Crusty IT"
+                            src="https://shellty-it.github.io/favicon.ico"
+                            alt="Shellty"
                             className="footer-logo"
                         />
                     </a>
