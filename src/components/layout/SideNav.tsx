@@ -97,7 +97,7 @@ export default function SideNav() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="footer-logo-link"
-                        aria-label="Strona wykonana przez Crusty IT"
+                        aria-label="Strona wykonana przez Shellty IT"
                     >
                         <img
                             src="https://shellty-it.github.io/favicon-32x32.png"
