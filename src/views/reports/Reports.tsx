@@ -39,7 +39,7 @@ export default function Reports() {
 
             const reports = syncFromKsefData(issued, received);
             setAll(reports);
-        } catch (err) {
+        } catch {
             setError('Nie udało się pobrać danych z KSeF. Sprawdź czy jesteś zalogowany.');
         } finally {
             setIsLoading(false);
