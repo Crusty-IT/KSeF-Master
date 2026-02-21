@@ -51,7 +51,7 @@ export interface SessionStatus {
 export interface InvoiceQueryRequest {
     subjectType: 'Subject1' | 'Subject2';
     dateRange: {
-        dateType: 'PermanentStorage' | 'InvoicingDate' | 'AcquisitionDate';
+        dateType: 'PermanentStorage';
         from: string;
         to: string;
     };
@@ -250,42 +250,54 @@ function mapToLegacyInvoice(invoice: InvoiceMetadata, type: 'issued' | 'received
     };
 }
 
-export async function listIssued(): Promise<Invoice[]> {
+async function fetchAllInvoices(subjectType: 'Subject1' | 'Subject2'): Promise<Invoice[]> {
     const now = new Date();
-    const from = new Date(now);
-    from.setMonth(from.getMonth() - 3);
+    const seen = new Set<string>();
+    const all: Invoice[] = [];
+    const type = subjectType === 'Subject1' ? 'issued' : 'received';
 
-    const response = await getInvoices({
-        subjectType: 'Subject1',
-        dateRange: {
-            dateType: 'PermanentStorage',
-            from: from.toISOString(),
-            to: now.toISOString(),
-        },
-    });
+    const windows: { from: Date; to: Date }[] = [];
+    for (let i = 0; i < 4; i++) {
+        const to = new Date(now);
+        to.setMonth(to.getMonth() - i * 3);
+        const from = new Date(to);
+        from.setMonth(from.getMonth() - 3);
+        windows.push({ from, to });
+    }
 
-    if (!response.success || !response.data) return [];
+    const results = await Promise.allSettled(
+        windows.map(w =>
+            getInvoices({
+                subjectType,
+                dateRange: {
+                    dateType: 'PermanentStorage',
+                    from: w.from.toISOString(),
+                    to: w.to.toISOString(),
+                },
+            })
+        )
+    );
 
-    return response.data.invoices.map((inv: InvoiceMetadata) => mapToLegacyInvoice(inv, 'issued'));
+    for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.success && result.value.data) {
+            for (const inv of result.value.data.invoices) {
+                if (!seen.has(inv.ksefNumber)) {
+                    seen.add(inv.ksefNumber);
+                    all.push(mapToLegacyInvoice(inv, type));
+                }
+            }
+        }
+    }
+
+    return all;
+}
+
+export async function listIssued(): Promise<Invoice[]> {
+    return fetchAllInvoices('Subject1');
 }
 
 export async function listReceived(): Promise<Invoice[]> {
-    const now = new Date();
-    const from = new Date(now);
-    from.setMonth(from.getMonth() - 3);
-
-    const response = await getInvoices({
-        subjectType: 'Subject2',
-        dateRange: {
-            dateType: 'PermanentStorage',
-            from: from.toISOString(),
-            to: now.toISOString(),
-        },
-    });
-
-    if (!response.success || !response.data) return [];
-
-    return response.data.invoices.map((inv: InvoiceMetadata) => mapToLegacyInvoice(inv, 'received'));
+    return fetchAllInvoices('Subject2');
 }
 
 export const getReceivedInvoices = listReceived;

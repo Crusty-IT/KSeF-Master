@@ -11,6 +11,12 @@
     gap: 12px;
 }
 
+.filters-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .filters-toggle {
     display: flex;
     align-items: center;
@@ -33,7 +39,6 @@
 
 .filters-toggle-icon {
     font-size: 10px;
-    transition: transform 0.2s;
     width: 12px;
     text-align: center;
 }
@@ -45,7 +50,30 @@
     background: rgba(34, 211, 238, 0.12);
     color: var(--accent);
     font-weight: 600;
-    letter-spacing: 0.2px;
+}
+
+.suspicious-pill {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.suspicious-pill:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.06);
+}
+
+.suspicious-pill.active {
+    border-color: var(--warning);
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.12);
 }
 
 .filters-reset {
@@ -123,44 +151,6 @@
     color: #4a5568;
 }
 
-.filter-group-checkbox {
-    display: flex;
-    align-items: flex-end;
-}
-
-.filter-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text);
-    cursor: pointer;
-    padding: 9px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: #0f141b;
-    transition: all 0.2s;
-    user-select: none;
-    width: 100%;
-}
-
-.filter-checkbox-label:hover {
-    border-color: #2e3a4a;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.filter-checkbox-label input[type="checkbox"] {
-    accent-color: var(--accent);
-    width: 15px;
-    height: 15px;
-    cursor: pointer;
-}
-
-.filter-suspicious-icon {
-    margin-left: auto;
-    font-size: 14px;
-}
-
 @media (max-width: 700px) {
     .filters-grid {
         grid-template-columns: 1fr 1fr;
@@ -176,5 +166,9 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
+    }
+
+    .filters-left {
+        flex-wrap: wrap;
     }
 }

@@ -36,15 +36,26 @@ export default function InvoiceFilters({
     return (
         <div className="invoice-filters">
             <div className="filters-header">
-                <button
-                    className="filters-toggle"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    type="button"
-                >
-                    <span className="filters-toggle-icon">{isExpanded ? '▼' : '▶'}</span>
-                    <span>Zaawansowane filtry</span>
-                    {hasActiveFilters && <span className="filters-badge">Aktywne</span>}
-                </button>
+                <div className="filters-left">
+                    <button
+                        className="filters-toggle"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        type="button"
+                    >
+                        <span className="filters-toggle-icon">{isExpanded ? '▼' : '▶'}</span>
+                        <span>Zaawansowane filtry</span>
+                        {hasActiveFilters && <span className="filters-badge">Aktywne</span>}
+                    </button>
+                    {showSuspiciousFilter && (
+                        <button
+                            type="button"
+                            className={`suspicious-pill ${filters.showOnlySuspicious ? 'active' : ''}`}
+                            onClick={() => handleChange('showOnlySuspicious', !filters.showOnlySuspicious)}
+                        >
+                            ⚠️ Podejrzane
+                        </button>
+                    )}
+                </div>
                 {hasActiveFilters && (
                     <button className="filters-reset" onClick={onReset} type="button">
                         Wyczyść filtry
@@ -63,7 +74,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('dateFrom', e.target.value)}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">Data do</label>
                         <input
@@ -73,7 +83,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('dateTo', e.target.value)}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">Kwota od (PLN)</label>
                         <input
@@ -86,7 +95,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('amountFrom', e.target.value)}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">Kwota do (PLN)</label>
                         <input
@@ -99,7 +107,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('amountTo', e.target.value)}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">NIP kontrahenta</label>
                         <input
@@ -111,7 +118,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('contractorNip', e.target.value.replace(/\D/g, '').slice(0, 10))}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">Nazwa kontrahenta</label>
                         <input
@@ -122,7 +128,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('contractorName', e.target.value)}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">Numer faktury</label>
                         <input
@@ -133,7 +138,6 @@ export default function InvoiceFilters({
                             onChange={(e) => handleChange('invoiceNumber', e.target.value)}
                         />
                     </div>
-
                     <div className="filter-group">
                         <label className="filter-label">Waluta</label>
                         <select
@@ -148,20 +152,6 @@ export default function InvoiceFilters({
                             <option value="GBP">GBP</option>
                         </select>
                     </div>
-
-                    {showSuspiciousFilter && (
-                        <div className="filter-group filter-group-checkbox">
-                            <label className="filter-checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={filters.showOnlySuspicious}
-                                    onChange={(e) => handleChange('showOnlySuspicious', e.target.checked)}
-                                />
-                                <span>Tylko podejrzane</span>
-                                <span className="filter-suspicious-icon">⚠️</span>
-                            </label>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
