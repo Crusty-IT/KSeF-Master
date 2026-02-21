@@ -33,16 +33,13 @@ export default function Reports() {
 
         try {
             const [issued, received] = await Promise.all([
-                listIssued({}),
-                listReceived({})
+                listIssued(),
+                listReceived()
             ]);
 
             const reports = syncFromKsefData(issued, received);
             setAll(reports);
-
-            console.log(`Zsynchronizowano: ${issued.length} wystawionych, ${received.length} odebranych`);
         } catch (err) {
-            console.error('Błąd synchronizacji z KSeF:', err);
             setError('Nie udało się pobrać danych z KSeF. Sprawdź czy jesteś zalogowany.');
         } finally {
             setIsLoading(false);

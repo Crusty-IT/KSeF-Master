@@ -6,25 +6,32 @@ import '../dashboard/Dashboard.css';
 import PrimaryButton from '../../components/buttons/PrimaryButton';
 import InvoiceFilters from '../../components/filters/InvoiceFilters';
 import FraudBadge from '../../components/alerts/FraudBadge';
-import { listReceived, downloadInvoicePdf, type Invoice, type ListInvoicesParams, type GeneratePdfRequest } from '../../services/ksefApi';
+import { listReceived, downloadInvoicePdf, type Invoice, type GeneratePdfRequest } from '../../services/ksefApi';
 import { useInvoiceFilters } from '../../hooks/useInvoiceFilters';
 import { useFraudDetection } from '../../hooks/useFraudDetection';
 import SideNav from '../../components/layout/SideNav';
 import TopBar from '../../components/layout/TopBar';
 
+function buildPageNumbers(current: number, total: number): (number | 'dots')[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | 'dots')[] = [1];
+    const left = Math.max(2, current - 1);
+    const right = Math.min(total - 1, current + 1);
+    if (left > 2) pages.push('dots');
+    for (let i = left; i <= right; i++) pages.push(i);
+    if (right < total - 1) pages.push('dots');
+    pages.push(total);
+    return pages;
+}
+
 export default function ReceivedInvoices() {
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(25);
     const [downloadingPdf, setDownloadingPdf] = useState<string | null>(null);
 
-    const params: ListInvoicesParams = useMemo(() => ({
-        page,
-        pageSize,
-    }), [page, pageSize]);
-
     const query = useQuery<Invoice[], Error>({
-        queryKey: ['receivedInvoices', params],
-        queryFn: () => listReceived(params),
+        queryKey: ['receivedInvoices'],
+        queryFn: () => listReceived(),
         staleTime: 60_000,
     });
 
@@ -56,6 +63,7 @@ export default function ReceivedInvoices() {
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const pageClamped = Math.min(page, totalPages);
     const paged = finalFilteredInvoices.slice((pageClamped - 1) * pageSize, pageClamped * pageSize);
+    const pageNumbers = buildPageNumbers(pageClamped, totalPages);
 
     const errorMessage = error
         ? 'Nie udało się pobrać faktur. Sprawdź, czy serwer backendu jest uruchomiony.'
@@ -95,7 +103,6 @@ export default function ReceivedInvoices() {
 
             await downloadInvoicePdf(request);
         } catch (err) {
-            console.error('Błąd pobierania PDF:', err);
             alert(err instanceof Error ? err.message : 'Nie udało się pobrać PDF');
         } finally {
             setDownloadingPdf(null);
@@ -134,7 +141,7 @@ export default function ReceivedInvoices() {
                                     </span>
                                 )}
                                 <PrimaryButton onClick={() => refetch()} disabled={isLoading || isFetching} icon="⟳">
-                                    {isLoading || isFetching ? 'Odświeżanie...' : 'Odśwież'}
+                                    {isLoading || isFetching ? 'Pobieranie...' : 'Odśwież'}
                                 </PrimaryButton>
                             </div>
                         </div>
@@ -154,19 +161,23 @@ export default function ReceivedInvoices() {
                                     onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
                                     className="page-size-select"
                                 >
-                                    <option value={5}>5</option>
                                     <option value={10}>10</option>
-                                    <option value={20}>20</option>
+                                    <option value={25}>25</option>
                                     <option value={50}>50</option>
+                                    <option value={100}>100</option>
                                 </select>
                             </label>
                             <span className="results-count">
-                                Wyników: {total}
+                                {isFetching && !isLoading ? '⟳ ' : ''}Wyników: {total}
                             </span>
                         </div>
 
                         <div className="table-wrap">
-                            {isLoading && <div className="loading-overlay">Ładowanie...</div>}
+                            {isLoading && (
+                                <div className="loading-spinner">
+                                    <span className="loading-spinner-text">Pobieranie faktur z KSeF...</span>
+                                </div>
+                            )}
                             {errorMessage && <div className="error-message">{errorMessage}</div>}
                             {!isLoading && !errorMessage && (
                                 <table className="data-table">
@@ -198,10 +209,10 @@ export default function ReceivedInvoices() {
                                                 <tr
                                                     key={row.numerKsef}
                                                     className={`
-                                                            ${selection.selectedIds.has(row.numerKsef) ? 'row-selected' : ''}
-                                                            ${fraudResult?.alertLevel === 'high' ? 'row-alert-high' : ''}
-                                                            ${fraudResult?.alertLevel === 'medium' ? 'row-alert-medium' : ''}
-                                                        `}
+                                                        ${selection.selectedIds.has(row.numerKsef) ? 'row-selected' : ''}
+                                                        ${fraudResult?.alertLevel === 'high' ? 'row-alert-high' : ''}
+                                                        ${fraudResult?.alertLevel === 'medium' ? 'row-alert-medium' : ''}
+                                                    `}
                                                 >
                                                     <td className="checkbox-col">
                                                         <input
@@ -221,9 +232,7 @@ export default function ReceivedInvoices() {
                                                     </td>
                                                     <td>{row.dataWystawienia}</td>
                                                     <td>
-                                                        <code className="ksef-number">
-                                                            {row.numerKsef}
-                                                        </code>
+                                                        <code className="ksef-number">{row.numerKsef}</code>
                                                     </td>
                                                     <td>{row.numerFaktury}</td>
                                                     <td>{row.nipKontrahenta}</td>
@@ -246,8 +255,11 @@ export default function ReceivedInvoices() {
                                         })
                                     ) : (
                                         <tr>
-                                            <td colSpan={9} style={{ textAlign: 'center' }}>
-                                                Brak faktur spełniających kryteria.
+                                            <td colSpan={9}>
+                                                <div className="empty-state">
+                                                    <span className="empty-state-icon">📭</span>
+                                                    <span className="empty-state-text">Brak faktur spełniających kryteria</span>
+                                                </div>
                                             </td>
                                         </tr>
                                     )}
@@ -256,25 +268,43 @@ export default function ReceivedInvoices() {
                             )}
                         </div>
 
-                        <div className="pagination">
-                            <button
-                                className="btn-light small"
-                                disabled={pageClamped <= 1}
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                            >
-                                Poprzednia
-                            </button>
-                            <span className="pagination-info">
-                                Strona {pageClamped} / {totalPages}
-                            </span>
-                            <button
-                                className="btn-light small"
-                                disabled={pageClamped >= totalPages}
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                            >
-                                Następna
-                            </button>
-                        </div>
+                        {totalPages > 1 && (
+                            <div className="pagination">
+                                <button
+                                    className="pagination-nav"
+                                    disabled={pageClamped <= 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                >
+                                    ‹ <span>Poprzednia</span>
+                                </button>
+
+                                {pageNumbers.map((p, i) =>
+                                    p === 'dots' ? (
+                                        <span key={`dots-${i}`} className="pagination-dots">…</span>
+                                    ) : (
+                                        <button
+                                            key={p}
+                                            className={`pagination-page ${p === pageClamped ? 'active' : ''}`}
+                                            onClick={() => setPage(p)}
+                                        >
+                                            {p}
+                                        </button>
+                                    )
+                                )}
+
+                                <button
+                                    className="pagination-nav"
+                                    disabled={pageClamped >= totalPages}
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                >
+                                    <span>Następna</span> ›
+                                </button>
+
+                                <span className="pagination-info">
+                                    {(pageClamped - 1) * pageSize + 1}–{Math.min(pageClamped * pageSize, total)} z {total}
+                                </span>
+                            </div>
+                        )}
                     </section>
                 </div>
             </main>

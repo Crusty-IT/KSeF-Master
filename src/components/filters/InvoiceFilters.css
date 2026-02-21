@@ -1,17 +1,14 @@
 /* src/components/filters/InvoiceFilters.css */
+
 .invoice-filters {
-    background: linear-gradient(180deg, #141822, #1a1f2b);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
     margin-bottom: 16px;
-    overflow: hidden;
 }
 
 .filters-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    gap: 12px;
 }
 
 .filters-toggle {
@@ -20,156 +17,151 @@
     gap: 8px;
     background: none;
     border: none;
-    color: #a7b1c2;
-    font-size: 14px;
+    color: var(--muted);
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    padding: 0;
-    transition: color 0.2s ease;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s;
 }
 
 .filters-toggle:hover {
-    color: #e7eaf3;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text);
 }
 
 .filters-toggle-icon {
     font-size: 10px;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s;
+    width: 12px;
+    text-align: center;
 }
 
 .filters-badge {
-    background: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
     font-size: 11px;
-    font-weight: 600;
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: 999px;
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 .filters-reset {
     background: none;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.25);
     color: #fca5a5;
     font-size: 12px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    padding: 5px 12px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .filters-reset:hover {
     background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.5);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
 }
 
 .filters-content {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-    padding: 0 16px;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+    opacity: 0;
 }
 
 .filters-content.expanded {
     max-height: 400px;
-    padding: 0 16px 16px;
+    padding-top: 16px;
+    opacity: 1;
 }
 
 .filters-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    align-items: end;
+    gap: 14px;
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 }
 
 .filter-label {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--muted);
     font-weight: 500;
+    letter-spacing: 0.2px;
 }
 
 .filter-input {
-    height: 38px;
-    padding: 0 12px;
-    background: #0f131b;
-    border: 1px solid #2b3140;
+    background: #0f141b;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: #e7eaf3;
+    padding: 9px 12px;
+    color: var(--text);
     font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.filter-input::placeholder {
-    color: #6b7280;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
 }
 
 .filter-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
 }
 
-.filter-input::-webkit-calendar-picker-indicator {
-    filter: invert(0.7);
-    cursor: pointer;
+.filter-input:hover {
+    border-color: #2e3a4a;
+}
+
+.filter-input::placeholder {
+    color: #4a5568;
 }
 
 .filter-group-checkbox {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: 38px;
+    display: flex;
+    align-items: flex-end;
 }
 
 .filter-checkbox-label {
-    display: inline-flex;
-    flex-direction: row;
+    display: flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
     font-size: 13px;
-    color: #a7b1c2;
-    user-select: none;
-    height: 38px;
-    padding: 0 12px;
-    background: rgba(245, 158, 11, 0.05);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: var(--text);
+    cursor: pointer;
+    padding: 9px 12px;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    background: #0f141b;
+    transition: all 0.2s;
+    user-select: none;
+    width: 100%;
 }
 
 .filter-checkbox-label:hover {
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: #2e3a4a;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .filter-checkbox-label input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #f59e0b;
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
     cursor: pointer;
-    flex-shrink: 0;
-    margin: 0;
-}
-
-.filter-checkbox-label input[type="checkbox"]:checked + span {
-    color: #fcd34d;
 }
 
 .filter-suspicious-icon {
+    margin-left: auto;
     font-size: 14px;
-    flex-shrink: 0;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 700px) {
     .filters-grid {
         grid-template-columns: 1fr 1fr;
     }
@@ -182,7 +174,7 @@
 
     .filters-header {
         flex-direction: column;
-        gap: 8px;
         align-items: flex-start;
+        gap: 8px;
     }
 }

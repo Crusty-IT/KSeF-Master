@@ -1,26 +1,19 @@
+// src/services/ksefApi.ts
 import axios, { AxiosError } from 'axios';
 
-// ===== Konfiguracja =====
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const apiClient = axios.create({
     baseURL: `${API_BASE_URL}/api/ksef`,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    timeout: 120000, // Zwiększony timeout do 120 sekund (2 minuty) dla Render cold start
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 120000,
 });
 
-// Dodatkowa konfiguracja dla pierwszego żądania (status check)
 const apiClientWithLongTimeout = axios.create({
     baseURL: `${API_BASE_URL}/api/ksef`,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    timeout: 180000, // 3 minuty dla pierwszego żądania
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 180000,
 });
-
-// ===== Typy =====
 
 export interface LoginRequest {
     nip: string;
@@ -71,28 +64,15 @@ export interface InvoiceMetadata {
     invoicingDate: string | null;
     acquisitionDate: string | null;
     permanentStorageDate: string | null;
-    seller: {
-        nip: string | null;
-        name: string | null;
-    } | null;
-    buyer: {
-        identifier: {
-            type: string;
-            value: string;
-        } | null;
-        name: string | null;
-    } | null;
+    seller: { nip: string | null; name: string | null } | null;
+    buyer: { identifier: { type: string; value: string } | null; name: string | null } | null;
     netAmount: number | null;
     grossAmount: number | null;
     vatAmount: number | null;
     currency: string | null;
     invoicingMode: string | null;
     invoiceType: string | null;
-    formCode: {
-        systemCode: string;
-        schemaVersion: string;
-        value: string;
-    } | null;
+    formCode: { systemCode: string; schemaVersion: string; value: string } | null;
     isSelfInvoicing: boolean;
     hasAttachment: boolean;
     invoiceHash: string | null;
@@ -165,10 +145,7 @@ export interface SendInvoiceResponse {
     };
 }
 
-// ===== API Functions =====
-
 export async function getStatus(): Promise<SessionStatus> {
-    // Używamy klienta z dłuższym timeoutem dla pierwszego żądania (cold start)
     const response = await apiClientWithLongTimeout.get<SessionStatus>('/status');
     return response.data;
 }
@@ -178,9 +155,8 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
         const response = await apiClient.post<LoginResponse>('/login', request);
         return response.data;
     } catch (error) {
-        if (error instanceof AxiosError && error.response) {
+        if (error instanceof AxiosError && error.response)
             return error.response.data as LoginResponse;
-        }
         throw error;
     }
 }
@@ -195,9 +171,8 @@ export async function getInvoices(request: InvoiceQueryRequest): Promise<Invoice
         const response = await apiClient.post<InvoiceQueryResponse>('/invoices', request);
         return response.data;
     } catch (error) {
-        if (error instanceof AxiosError && error.response) {
+        if (error instanceof AxiosError && error.response)
             return error.response.data as InvoiceQueryResponse;
-        }
         throw error;
     }
 }
@@ -207,9 +182,8 @@ export async function openSession(): Promise<OpenSessionResponse> {
         const response = await apiClient.post<OpenSessionResponse>('/session/open');
         return response.data;
     } catch (error) {
-        if (error instanceof AxiosError && error.response) {
+        if (error instanceof AxiosError && error.response)
             return error.response.data as OpenSessionResponse;
-        }
         throw error;
     }
 }
@@ -224,14 +198,11 @@ export async function sendInvoice(invoice: CreateInvoiceRequest): Promise<SendIn
         const response = await apiClient.post<SendInvoiceResponse>('/invoice/send', invoice);
         return response.data;
     } catch (error) {
-        if (error instanceof AxiosError && error.response) {
+        if (error instanceof AxiosError && error.response)
             return error.response.data as SendInvoiceResponse;
-        }
         throw error;
     }
 }
-
-// ===== Legacy compatibility =====
 
 export type UpoStatus = 'accepted' | 'pending' | 'rejected';
 
@@ -243,7 +214,6 @@ export interface Invoice {
     kwotaBrutto: number;
     dataWystawienia: string;
     status: UpoStatus;
-    // Dodatkowe pola do PDF
     invoiceHash?: string;
     kwotaNetto?: number;
     kwotaVat?: number;
@@ -272,7 +242,6 @@ function mapToLegacyInvoice(invoice: InvoiceMetadata, type: 'issued' | 'received
         kwotaBrutto: invoice.grossAmount || 0,
         dataWystawienia: invoice.issueDate || invoice.invoicingDate?.split('T')[0] || '',
         status: 'accepted' as UpoStatus,
-        // Dodatkowe pola do PDF
         invoiceHash: invoice.invoiceHash || undefined,
         kwotaNetto: invoice.netAmount || undefined,
         kwotaVat: invoice.vatAmount || undefined,
@@ -281,8 +250,7 @@ function mapToLegacyInvoice(invoice: InvoiceMetadata, type: 'issued' | 'received
     };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function listIssued(_params?: ListInvoicesParams): Promise<Invoice[]> {
+export async function listIssued(): Promise<Invoice[]> {
     const now = new Date();
     const from = new Date(now);
     from.setMonth(from.getMonth() - 3);
@@ -296,16 +264,12 @@ export async function listIssued(_params?: ListInvoicesParams): Promise<Invoice[
         },
     });
 
-    if (!response.success || !response.data) {
-        console.warn('Failed to fetch issued invoices:', response.error);
-        return [];
-    }
+    if (!response.success || !response.data) return [];
 
     return response.data.invoices.map((inv: InvoiceMetadata) => mapToLegacyInvoice(inv, 'issued'));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function listReceived(_params?: ListInvoicesParams): Promise<Invoice[]> {
+export async function listReceived(): Promise<Invoice[]> {
     const now = new Date();
     const from = new Date(now);
     from.setMonth(from.getMonth() - 3);
@@ -319,10 +283,7 @@ export async function listReceived(_params?: ListInvoicesParams): Promise<Invoic
         },
     });
 
-    if (!response.success || !response.data) {
-        console.warn('Failed to fetch received invoices:', response.error);
-        return [];
-    }
+    if (!response.success || !response.data) return [];
 
     return response.data.invoices.map((inv: InvoiceMetadata) => mapToLegacyInvoice(inv, 'received'));
 }
@@ -342,7 +303,6 @@ export interface ContractorQueryParams {
     q?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function listContractors(_params?: ContractorQueryParams): Promise<Contractor[]> {
     return [];
 }
@@ -350,8 +310,6 @@ export async function listContractors(_params?: ContractorQueryParams): Promise<
 export async function upsertContractor(): Promise<never> {
     throw new Error('Not implemented');
 }
-
-// ===== PDF Generation =====
 
 export interface GeneratePdfRequest {
     source: 'local' | 'ksef';
@@ -398,9 +356,7 @@ export interface GeneratePdfRequest {
 export async function downloadInvoicePdf(request: GeneratePdfRequest): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/api/ksef/invoice/pdf`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
     });
 
@@ -409,18 +365,14 @@ export async function downloadInvoicePdf(request: GeneratePdfRequest): Promise<v
         throw new Error(error.error || 'Nie udało się wygenerować PDF');
     }
 
-    // Pobierz plik
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
 
-    // Wyciągnij nazwę pliku z Content-Disposition lub użyj domyślnej
     const contentDisposition = response.headers.get('Content-Disposition');
     let fileName = 'faktura.pdf';
     if (contentDisposition) {
         const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (match && match[1]) {
-            fileName = match[1].replace(/['"]/g, '');
-        }
+        if (match && match[1]) fileName = match[1].replace(/['"]/g, '');
     }
 
     const a = document.createElement('a');
